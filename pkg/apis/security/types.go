@@ -63,14 +63,22 @@ func (docs *ACLDocuments) Set(aclDoc ACLDocument) {
 
 func (docs *ACLDocuments) Roles() *Roles {
 	if val, exists := (*docs)[DocTypeRoles]; exists {
-		return val.(*Roles)
+		r := val.(*Roles)
+		if r.roleNames == nil {
+			r.roleNames = map[string]Role{}
+		}
+		return r
 	}
 	return nil
 }
 
 func (docs *ACLDocuments) RolesMapping() *RolesMapping {
 	if val, exists := (*docs)[DocTypeRolesmapping]; exists {
-		return val.(*RolesMapping)
+		r := val.(*RolesMapping)
+		if r.roleNames == nil {
+			r.roleNames = map[string]RoleMapping{}
+		}
+		return r
 	}
 	return nil
 }

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	securityIndex = ".security"
+	securityIndex = ".opendistro_security"
 	DocType       = "security"
 )
 
@@ -60,7 +60,10 @@ func decodeACLDocument(resp string, docType security.DocType) (string, error) {
 
 func decodeACLDocumentFrom(item MGetResponseItem, docType security.DocType) (string, error) {
 	log.Tracef("Decoding docType %q from %v", docType, item)
-	source := item.Source[string(docType)]
+	source, ok := item.Source[string(docType)]
+	if !ok {
+		return "", fmt.Errorf("doctype %v not found", docType)
+	}
 	log.Tracef("ACLDocument _source to decode: %v", source)
 	unencoded, err := base64.StdEncoding.DecodeString(source.(string))
 	if err != nil {
@@ -182,7 +185,7 @@ func (sg *DefaultESSecurityClient) FlushACL(docs security.ACLDocuments) error {
 		if err != nil {
 			return err
 		}
-		if _, err = sg.esClient.Index(".security", "security", string(doc.Type()), sDoc, doc.Version()); err != nil {
+		if _, err = sg.esClient.Index(securityIndex, DocType, string(doc.Type()), sDoc, doc.Version()); err != nil {
 			return err
 		}
 	}

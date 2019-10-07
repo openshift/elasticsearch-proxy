@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +14,7 @@ import (
 type RequestContext struct {
 	Token    string
 	UserName string
+	Projects []types.Project
 	Groups   []string
 	Roles    []string
 }

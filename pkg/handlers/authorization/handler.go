@@ -1,14 +1,15 @@
 package authorization
 
 import (
+	"errors"
+	"fmt"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
-	clients "github.com/openshift/elasticsearch-proxy/pkg/clients"
+	"github.com/openshift/elasticsearch-proxy/pkg/clients"
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
-	handlers "github.com/openshift/elasticsearch-proxy/pkg/handlers"
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers"
 )
 
 const (
@@ -20,6 +21,7 @@ const (
 type authorizationHandler struct {
 	config   *config.Options
 	osClient clients.OpenShiftClient
+	cache    *rolesService
 }
 
 //NewHandlers is the initializer for this handler
@@ -30,8 +32,9 @@ func NewHandlers(opts *config.Options) (_ []handlers.RequestHandler) {
 	}
 	return []handlers.RequestHandler{
 		&authorizationHandler{
-			opts,
-			osClient,
+			config:   opts,
+			osClient: osClient,
+			cache:    NewRolesProjectsService(1000, opts.CacheExpiry, opts.AuthBackEndRoles, osClient),
 			// defaultbackendRoleConfig,
 		},
 	}
@@ -45,36 +48,25 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 	context.Token = getBearerTokenFrom(req)
 	if context.Token == "" {
 		log.Debugf("Skipping %s as there is no bearer token present", auth.Name())
-		return req, nil
+		return req, errors.New("missing bearer token")
 	}
 	sanitizeHeaders(req)
-	json, err := auth.osClient.TokenReview(context.Token)
+	rolesProjects, err := auth.cache.getRolesAndProjects(context.Token)
 	if err != nil {
-		log.Errorf("Error fetching user info %v", err)
-		return req, err
+		return req, fmt.Errorf("could not run SAR or fech projects: %v", err)
 	}
-	context.UserName = json.UserName()
-	log.Debugf("User is %q", json.UserName())
-	if context.UserName != "" {
+	context.UserName = rolesProjects.review.UserName()
+	context.Projects = rolesProjects.projects
+	if rolesProjects.review.UserName() != "" {
 		req.Header.Set(headerForwardedUser, context.UserName)
 	}
-	auth.fetchRoles(req, context)
-	return req, nil
-}
-
-func (auth *authorizationHandler) fetchRoles(req *http.Request, context *handlers.RequestContext) {
-	log.Debug("Determining roles...")
-	for name, sar := range auth.config.AuthBackEndRoles {
-		if allowed, err := auth.osClient.SubjectAccessReview(context.UserName, sar.Namespace, sar.Verb, sar.Resource, sar.ResourceAPIGroup); err == nil {
-			log.Debugf("%q for %q SAR: %v", context.UserName, name, allowed)
-			if allowed {
-				context.Roles = append(context.Roles, name)
-				req.Header.Add(headerForwardedRoles, name)
-			}
-		} else {
-			log.Warnf("Unable to evaluate %s SAR for user %s", name, context.UserName)
+	for name := range auth.config.AuthBackEndRoles {
+		if _, ok := rolesProjects.roles[name]; ok {
+			context.Roles = append(context.Roles, name)
+			req.Header.Add(headerForwardedRoles, name)
 		}
 	}
+	return req, nil
 }
 
 func sanitizeHeaders(req *http.Request) {
@@ -83,9 +75,8 @@ func sanitizeHeaders(req *http.Request) {
 
 func getBearerTokenFrom(req *http.Request) string {
 	parts := strings.SplitN(req.Header.Get(headerAuthorization), " ", 2)
-	if len(parts) > 0 && parts[0] == "Bearer" {
+	if len(parts) > 1 && parts[0] == "Bearer" {
 		return parts[1]
 	}
-	log.Trace("No bearer token found on request. Returning ''")
 	return ""
 }
