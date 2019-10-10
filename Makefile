@@ -9,6 +9,9 @@ BUILD_GOPATH=$(TARGET_DIR)
 
 #inputs to 'run' which may need to change
 TLS_CERTS_BASEDIR=_output
+NAMESPACE ?= "openshift-logging"
+ES_CERTS_DIR ?= ""
+CACHE_EXPIRY ?= "5s"
 
 PKGS=$(shell go list ./... | grep -v -E '/vendor/')
 TEST_PKGS=$(shell go list ./... | grep -v -E '/vendor/' | grep -v -E 'cmd')
@@ -26,6 +29,10 @@ build: fmt
 	go build $(LDFLAGS) -o $(TARGET) $(MAIN_PKG)
 .PHONY: build
 
+vendor:
+	go mod vendor
+.PHONY: vendor
+
 image:
 	imagebuilder -f Dockerfile -t $(IMAGE_REPOSITORY_NAME)/$(BIN_NAME) .
 .PHONY: images
@@ -41,27 +48,37 @@ test:
 	done
 .PHONY: test
 
-prep-for-run:
+copy-k8s-sa:
+	mkdir -p ${TLS_CERTS_BASEDIR} || true
+	oc -n ${NAMESPACE} get pod -l component=elasticsearch -o jsonpath={.items[0].metadata.name} > _output/espod && \
+	oc -n ${NAMESPACE} exec -c elasticsearch $$(cat _output/espod) -- cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > _output/ca.crt && \
+	oc -n ${NAMESPACE} serviceaccounts get-token elasticsearch > _output/sa-token && \
+	echo ${NAMESPACE} > _output/namespace && \
+	sudo mkdir -p /var/run/secrets/kubernetes.io/serviceaccount/||:  && \
+	sudo ln -sf $${PWD}/_output/ca.crt /var/run/secrets/kubernetes.io/serviceaccount/ca.crt && \
+	sudo ln -sf $${PWD}/_output/sa-token /var/run/secrets/kubernetes.io/serviceaccount/token
+.PHONY: copy-k8s-sa
+
+copy-es-certs:
+	mkdir -p ${TLS_CERTS_BASEDIR} || true
+ifneq ($(ES_CERTS_DIR), "")
+	cp ${ES_CERTS_DIR}/kirk.pem _output/admin-cert
+	cp ${ES_CERTS_DIR}/kirk-key.pem _output/admin-key
+	cp ${ES_CERTS_DIR}/root-ca.pem _output/admin-ca
+else
 	mkdir -p ${TLS_CERTS_BASEDIR}||:  && \
 	for n in "ca" "cert" "key" ; do \
-		oc -n openshift-logging get secret elasticsearch -o jsonpath={.data.admin-$$n} | base64 -d > _output/admin-$$n ; \
-	done && \
-	oc -n openshift-logging  get pod -l component=elasticsearch -o jsonpath={.items[0].metadata.name} > _output/espod && \
-	oc -n openshift-logging exec -c elasticsearch $$(cat _output/espod) -- cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > _output/ca.crt && \
-	oc -n openshift-logging serviceaccounts get-token elasticsearch > _output/sa-token && \
-	echo openshift-logging > _output/namespace && \
-	mkdir -p /var/run/secrets/kubernetes.io/serviceaccount/||:  && \
-	sudo ln -sf $${PWD}/_output/ca.crt /var/run/secrets/kubernetes.io/serviceaccount/ca.crt && \
-	sudo ln -sf $${PWD}/_output/sa-token /var/run/secrets/kubernetes.io/serviceaccount/token && \
-	sudo ln -sf $${PWD}/_output/namespace /var/run/secrets/kubernetes.io/serviceaccount/namespace
-	
-.PHONY: prep-for-run
+		oc -n ${NAMESPACE} get secret elasticsearch -o jsonpath={.data.admin-$$n} | base64 -d > _output/admin-$$n ; \
+	done
+endif
+.PHONY: copy-es-certs
 
-run:
-	$(TARGET) --https-address=':60000' \
+run: copy-es-certs
+	LOGLEVEL=trace go run ${MAIN_PKG} --listening-address=':60000' \
         --tls-cert=$(TLS_CERTS_BASEDIR)/admin-cert \
         --tls-key=$(TLS_CERTS_BASEDIR)/admin-key \
         --upstream-ca=$(TLS_CERTS_BASEDIR)/admin-ca \
+        --cache-expiry=$(CACHE_EXPIRY) \
 		--auth-backend-role=sg_role_admin='{"namespace": "default", "verb": "view", "resource": "pods/metrics"}' \
 		--auth-backend-role=prometheus='{"verb": "get", "resource": "/metrics"}' \
 		--auth-backend-role=jaeger='{"verb": "get", "resource": "/jaeger", "resourceAPIGroup": "elasticsearch.jaegertracing.io"}' \

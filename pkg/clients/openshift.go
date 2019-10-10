@@ -1,6 +1,10 @@
 package clients
 
 import (
+	"fmt"
+	"k8s.io/client-go/tools/clientcmd"
+	"os/user"
+	"path/filepath"
 	"strings"
 
 	authenticationapi "k8s.io/api/authentication/v1"
@@ -45,29 +49,31 @@ func (t *TokenReview) Groups() []string {
 
 //Namespace wrappers a core kube namespace type
 type Namespace struct {
-	corev1.Namespace
+	Ns corev1.Namespace
 }
 
 //UID get the UID of a namespace
 func (ns *Namespace) UID() string {
-	return ns.UID()
+	return string(ns.Ns.UID)
 }
 
 //Name get the name of a namespace
 func (ns *Namespace) Name() string {
-	return ns.Name()
+	return ns.Ns.Name
 }
 
 //ListNamespaces associated with a given token
 func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Namespace, err error) {
-
-	var nsList *corev1.NamespaceList
-	if nsList, err = newKubeClient(token).CoreV1().Namespaces().List(metav1.ListOptions{}); err != nil {
-		for _, ns := range nsList.Items {
-			namespaces = append(namespaces, Namespace{ns})
-		}
-	} else {
-		return []Namespace{}, err
+	client, err := newKubeClient(token)
+	if err != nil {
+		return nil, err
+	}
+	nsList, err := client.CoreV1().Namespaces().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, ns := range nsList.Items {
+		namespaces = append(namespaces, Namespace{ns})
 	}
 	return namespaces, nil
 }
@@ -118,20 +124,46 @@ func (c *DefaultOpenShiftClient) SubjectAccessReview(user, namespace, verb, reso
 
 // NewOpenShiftClient returns a client for connecting to the api server.
 func NewOpenShiftClient() (OpenShiftClient, error) {
-	return &DefaultOpenShiftClient{
-		newKubeClient(""),
-	}, nil
+	c, err := newKubeClient("")
+	if err != nil {
+		return nil, fmt.Errorf("failed not create kubernetes client: %v", err)
+	}
+	return &DefaultOpenShiftClient{client: c}, nil
 }
 
-func newKubeClient(token string) *kubernetes.Clientset {
-	config, err := rest.InClusterConfig()
+func newKubeClient(token string) (*kubernetes.Clientset, error) {
+	config, err := getConfig()
+	if err != nil {
+		return nil, err
+	}
 	if token != "" {
 		config.BearerToken = token
 	}
-	log.Tracef("Creating new OpenShift client with: %+v", config)
+	log.Tracef("Creating new OpenShift client %v", config.Host)
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
-	return clientset
+	return clientset, nil
+}
+
+func getConfig() (*rest.Config, error) {
+	// Try the in-cluster config
+	c, errInCluster := rest.InClusterConfig()
+	if errInCluster == nil {
+		log.Trace("Created in-cluster config")
+		return c, nil
+	}
+	log.Tracef("Failed to create in-cluster config: %v", errInCluster)
+	// If no in-cluster config, try the default location in the user's home directory
+	usr, errKubeConfig := user.Current()
+	if errKubeConfig == nil {
+		var c *rest.Config
+		c, errKubeConfig = clientcmd.BuildConfigFromFlags("", filepath.Join(usr.HomeDir, ".kube", "config"))
+		if errKubeConfig == nil {
+			log.Trace("Created host based (~/.kube) config")
+			return c, nil
+		}
+	}
+	return nil, fmt.Errorf("could not create k8s config for both in-cluster [%v] and kubeconfig [%v]", errInCluster, errKubeConfig)
 }

@@ -3,9 +3,8 @@ package clusterlogging
 import (
 	"net/http"
 
-	"github.com/openshift/elasticsearch-proxy/pkg/clients"
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
-	handlers "github.com/openshift/elasticsearch-proxy/pkg/handlers"
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers"
 	ac "github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/accesscontrol"
 	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 	log "github.com/sirupsen/logrus"
@@ -24,11 +23,6 @@ type handler struct {
 	//all proxy logic is skipped (e.g. fluent)
 	whitelisted     setString
 	documentManager *ac.DocumentManager
-	osClient        clients.OpenShiftClient
-}
-
-type requestContext struct {
-	*types.UserInfo
 }
 
 //NewHandlers is the initializer for clusterlogging handlers
@@ -37,16 +31,11 @@ func NewHandlers(opts *config.Options) []handlers.RequestHandler {
 	if err != nil {
 		log.Fatalf("Unable to initialize the cluster logging proxy handler %v", err)
 	}
-	client, err := clients.NewOpenShiftClient()
-	if err != nil {
-		log.Fatalf("Unable to initialize OpenShift Client %v", err)
-	}
 	return []handlers.RequestHandler{
 		&handler{
-			opts,
-			setString{},
-			dm,
-			client,
+			config:          opts,
+			whitelisted:     setString{},
+			documentManager: dm,
 		},
 	}
 }
@@ -58,10 +47,7 @@ func (ext *handler) Process(req *http.Request, context *handlers.RequestContext)
 		return req, nil
 	}
 	modRequest := req
-	userInfo, err := newUserInfo(ext, context)
-	if err != nil {
-		return req, err
-	}
+	userInfo := newUserInfo(context)
 	// modify kibana request
 	// seed kibana dashboards
 	ext.documentManager.SyncACL(userInfo)
@@ -86,33 +72,14 @@ func (ext *handler) hasInfraRole(context *handlers.RequestContext) bool {
 	return false
 }
 
-func newUserInfo(ext *handler, context *handlers.RequestContext) (*types.UserInfo, error) {
-	projects, err := ext.fetchProjects(context)
-	if err != nil {
-		return nil, err
-	}
+func newUserInfo(context *handlers.RequestContext) *types.UserInfo {
 	info := &types.UserInfo{
 		Username: context.UserName,
-		Projects: projects,
+		Projects: context.Projects,
 		Groups:   context.Groups,
 	}
 	log.Tracef("Created userInfo: %+v", info)
-	return info, nil
-}
-
-func (ext *handler) fetchProjects(context *handlers.RequestContext) (projects []types.Project, err error) {
-	log.Debugf("Fetching projects for user %q", context.UserName)
-
-	var namespaces []clients.Namespace
-	namespaces, err = ext.osClient.ListNamespaces(context.Token)
-	if err != nil {
-		log.Errorf("There was an error fetching projects: %v", err)
-		return nil, err
-	}
-	for _, ns := range namespaces {
-		projects = append(projects, types.Project{Name: ns.Name(), UUID: ns.UID()})
-	}
-	return projects, nil
+	return info
 }
 
 func (ext *handler) Name() string {

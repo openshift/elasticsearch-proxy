@@ -33,6 +33,7 @@ type Options struct {
 	//Auth Handler Configs
 	RawAuthBackEndRole []string `flag:"auth-backend-role"`
 	AuthBackEndRoles   map[string]BackendRoleConfig
+	CacheExpiry        time.Duration `flag:"cache-expiry"`
 
 	//OCP Cluster Logging configs
 	cltypes.ExtConfig

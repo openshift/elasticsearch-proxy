@@ -24,6 +24,7 @@ func newFlagSet() *flag.FlagSet {
 
 	flagSet.Duration("upstream-flush", time.Duration(5)*time.Millisecond, "force flush upstream responses after this duration(useful for streaming responses). 0 to never force flush. Defaults to 5ms")
 	flagSet.Var(&util.StringArray{}, "upstream-ca", "paths to CA roots for the Upstream (target) Server (may be given multiple times, defaults to system trust store).")
+	flagSet.Duration("cache-expiry", time.Duration(5)*time.Minute, "cache expiration duration. The cache stores a specific set of OpenShift objects (projects, sar) used by the proxy.")
 
 	//Auth flags
 	flagSet.Var(&util.StringArray{}, "auth-backend-role", "A SAR to check to allow the given backend role(i.e. admin={'namespace':'default','verb':'get','resource':'pods/logs'}")
