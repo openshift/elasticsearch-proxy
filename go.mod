@@ -14,6 +14,7 @@ require (
 	github.com/mreiferson/go-options v0.0.0-20190302064952-20ba7d382d05
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
+	github.com/openshift/api v0.0.0-20180830153656-5ad8479f64f1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stamblerre/gocode v0.0.0-20190327203809-810592086997 // indirect
 	github.com/stretchr/testify v1.3.0

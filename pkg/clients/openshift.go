@@ -7,14 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	osprojectv1 "github.com/openshift/api/project/v1"
+	log "github.com/sirupsen/logrus"
 	authenticationapi "k8s.io/api/authentication/v1"
 	authorizationapi "k8s.io/api/authorization/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	log "github.com/sirupsen/logrus"
 )
 
 //OpenShiftClient abstracts kubeclient and calls
@@ -49,7 +47,7 @@ func (t *TokenReview) Groups() []string {
 
 //Namespace wrappers a core kube namespace type
 type Namespace struct {
-	Ns corev1.Namespace
+	Ns osprojectv1.Project
 }
 
 //UID get the UID of a namespace
@@ -68,11 +66,17 @@ func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Name
 	if err != nil {
 		return nil, err
 	}
-	nsList, err := client.CoreV1().Namespaces().List(metav1.ListOptions{})
+
+	result := &osprojectv1.ProjectList{}
+	err = client.RESTClient().
+		Get().
+		Prefix("apis", "project.openshift.io", "v1", "projects").
+		Do().
+		Into(result)
 	if err != nil {
 		return nil, err
 	}
-	for _, ns := range nsList.Items {
+	for _, ns := range result.Items {
 		namespaces = append(namespaces, Namespace{ns})
 	}
 	return namespaces, nil

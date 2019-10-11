@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
+	osprojectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	authenticationv1 "k8s.io/api/authentication/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -78,5 +78,5 @@ func (c *mockOpenShiftClient) SubjectAccessReview(user, namespace, verb, resourc
 }
 
 func (c *mockOpenShiftClient) ListNamespaces(token string) ([]clients.Namespace, error) {
-	return []clients.Namespace{{Ns: corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "myproject"}}}}, c.projectsErr
+	return []clients.Namespace{{Ns: osprojectv1.Project{ObjectMeta: metav1.ObjectMeta{Name: "myproject"}}}}, c.projectsErr
 }
