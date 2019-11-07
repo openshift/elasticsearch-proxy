@@ -17,6 +17,11 @@ PKGS=$(shell go list ./... | grep -v -E '/vendor/')
 TEST_PKGS=$(shell go list ./... | grep -v -E '/vendor/' | grep -v -E 'cmd')
 TEST_OPTIONS?=
 
+ELASTICSEARCH_NAME ?=elasticsearch
+
+KUBERNETES_SERVICE_HOST ?= $(shell oc get svc kubernetes -n default -o jsonpath='{.spec.clusterIP}')
+KUBERNETES_SERVICE_PORT ?= $(shell oc get svc kubernetes -n default -o jsonpath='{.spec.ports[?(@.name == "https")].port}')
+
 all: build
 
 fmt:
@@ -60,20 +65,21 @@ copy-k8s-sa:
 .PHONY: copy-k8s-sa
 
 copy-es-certs:
-	mkdir -p ${TLS_CERTS_BASEDIR} || true
+	mkdir -p ${TLS_CERTS_BASEDIR} ||:
 ifneq ($(ES_CERTS_DIR), "")
-	cp ${ES_CERTS_DIR}/kirk.pem _output/admin-cert
-	cp ${ES_CERTS_DIR}/kirk-key.pem _output/admin-key
-	cp ${ES_CERTS_DIR}/root-ca.pem _output/admin-ca
+	cp ${ES_CERTS_DIR}/kirk.pem ${TLS_CERTS_BASEDIR}/admin-cert
+	cp ${ES_CERTS_DIR}/kirk-key.pem ${TLS_CERTS_BASEDIR}/admin-key
+	cp ${ES_CERTS_DIR}/root-ca.pem ${TLS_CERTS_BASEDIR}/admin-ca
 else
-	mkdir -p ${TLS_CERTS_BASEDIR}||:  && \
-	for n in "ca" "cert" "key" ; do \
-		oc -n ${NAMESPACE} get secret elasticsearch -o jsonpath={.data.admin-$$n} | base64 -d > _output/admin-$$n ; \
+	for n in ca cert key ; do \
+		oc -n ${NAMESPACE} extract secret/${ELASTICSEARCH_NAME} --keys=admin-$$n --to=${TLS_CERTS_BASEDIR} --confirm ; \
 	done
 endif
 .PHONY: copy-es-certs
 
 run: copy-es-certs
+	KUBERNETES_SERVICE_HOST="${KUBERNETES_SERVICE_HOST}" \
+	KUBERNETES_SERVICE_PORT="${KUBERNETES_SERVICE_PORT}" \
 	LOGLEVEL=trace go run ${MAIN_PKG} --listening-address=':60000' \
         --tls-cert=$(TLS_CERTS_BASEDIR)/admin-cert \
         --tls-key=$(TLS_CERTS_BASEDIR)/admin-key \
