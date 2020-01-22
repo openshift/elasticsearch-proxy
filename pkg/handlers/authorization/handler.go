@@ -13,9 +13,11 @@ import (
 )
 
 const (
-	headerAuthorization  = "Authorization"
-	headerForwardedUser  = "X-Forwarded-User"
-	headerForwardedRoles = "X-Forwarded-Roles"
+	headerAuthorization         = "Authorization"
+	headerForwardedUser         = "X-Forwarded-User"
+	headerForwardedRoles        = "X-Forwarded-Roles"
+	headerForwardedNamespace    = "X-OCP-NS"
+	headerForwardedNamespaceUid = "X-OCP-NSUID"
 )
 
 type authorizationHandler struct {
@@ -56,9 +58,13 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 		return req, fmt.Errorf("could not run SAR or fech projects: %v", err)
 	}
 	context.UserName = rolesProjects.review.UserName()
-	context.Projects = rolesProjects.projects
 	if rolesProjects.review.UserName() != "" {
 		req.Header.Set(headerForwardedUser, context.UserName)
+	}
+	context.Projects = rolesProjects.projects
+	for _, project := range context.Projects {
+		req.Header.Add(headerForwardedNamespace, project.Name)
+		req.Header.Add(headerForwardedNamespaceUid, project.UUID)
 	}
 	for name := range auth.config.AuthBackEndRoles {
 		if _, ok := rolesProjects.roles[name]; ok {
