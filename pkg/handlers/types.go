@@ -15,11 +15,21 @@ import (
 )
 
 type RequestContext struct {
-	Token    string
-	UserName string
-	Projects []types.Project
-	Groups   []string
-	Roles    []string
+	Token            string
+	UserName         string
+	Projects         []types.Project
+	Groups           []string
+	Roles            []string
+	WhiteListedNames []string
+}
+
+func (context *RequestContext) IsWhiteListed(name string) bool {
+	for _, whitelisted := range context.WhiteListedNames {
+		if name == whitelisted {
+			return true
+		}
+	}
+	return false
 }
 
 func (context *RequestContext) RoleSet() sets.String {

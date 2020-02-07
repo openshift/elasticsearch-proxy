@@ -51,6 +51,16 @@ var _ = Describe("Initializing Config options", func() {
 		})
 	})
 
+	Describe("when defining whitelisted names", func() {
+		It("should succeed", func() {
+			args := []string{"--auth-whitelisted-name=foo", "--auth-whitelisted-name=bar"}
+			options, err := config.Init(args)
+			Expect(err).Should(BeNil())
+			Expect(options).Should(Not(BeNil()))
+			Expect(options.AuthWhiteListedNames).Should(Equal([]string{"foo", "bar"}))
+		})
+
+	})
 	Describe("when defining auth backend role", func() {
 		Describe("without a valid backendname", func() {
 

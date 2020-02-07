@@ -28,6 +28,7 @@ func newFlagSet() *flag.FlagSet {
 
 	//Auth flags
 	flagSet.Var(&util.StringArray{}, "auth-backend-role", "A SAR to check to allow the given backend role(i.e. admin={'namespace':'default','verb':'get','resource':'pods/logs'}")
+	flagSet.Var(&util.StringArray{}, "auth-whitelisted-name", "A name compared against cert CN for which a request will be passed through")
 
 	return flagSet
 }

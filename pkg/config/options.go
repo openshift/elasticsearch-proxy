@@ -39,6 +39,9 @@ type Options struct {
 	//AuthBackEndRoles is a map of rolename to SubjectAccessReviews to check to apply a given role to a user
 	AuthBackEndRoles map[string]BackendRoleConfig
 	CacheExpiry      time.Duration `flag:"cache-expiry"`
+	//AuthWhiteListedNames  is the list of names compared against cert CN for which a request will be passed through
+	//with no additional processing
+	AuthWhiteListedNames []string `flag:"auth-whitelisted-name"`
 
 	//OCP Cluster Logging configs
 	cltypes.ExtConfig
@@ -69,12 +72,13 @@ func Init(args []string) (*Options, error) {
 
 func newOptions() *Options {
 	return &Options{
-		ProxyWebSockets:  true,
-		ListeningAddress: ":443",
-		Elasticsearch:    "https://localhost:9200",
-		UpstreamFlush:    time.Duration(5) * time.Millisecond,
-		RequestLogging:   false,
-		AuthBackEndRoles: map[string]BackendRoleConfig{},
+		ProxyWebSockets:      true,
+		ListeningAddress:     ":443",
+		Elasticsearch:        "https://localhost:9200",
+		UpstreamFlush:        time.Duration(5) * time.Millisecond,
+		RequestLogging:       false,
+		AuthBackEndRoles:     map[string]BackendRoleConfig{},
+		AuthWhiteListedNames: []string{},
 	}
 }
 

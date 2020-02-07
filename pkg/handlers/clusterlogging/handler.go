@@ -19,9 +19,6 @@ type setString map[string]interface{}
 type handler struct {
 	config *config.Options
 
-	//whitelisted is the list of user and or serviceacccounts for which
-	//all proxy logic is skipped (e.g. fluent)
-	whitelisted     setString
 	documentManager *ac.DocumentManager
 }
 
@@ -34,7 +31,6 @@ func NewHandlers(opts *config.Options) []handlers.RequestHandler {
 	return []handlers.RequestHandler{
 		&handler{
 			config:          opts,
-			whitelisted:     setString{},
 			documentManager: dm,
 		},
 	}
@@ -42,7 +38,7 @@ func NewHandlers(opts *config.Options) []handlers.RequestHandler {
 
 func (ext *handler) Process(req *http.Request, context *handlers.RequestContext) (*http.Request, error) {
 	name := context.UserName
-	if ext.isWhiteListed(name) || ext.hasInfraRole(context) {
+	if context.IsWhiteListed(name) || ext.hasInfraRole(context) {
 		log.Debugf("Skipping additional processing, %s is whitelisted or has the infra role", name)
 		return req, nil
 	}
@@ -53,13 +49,6 @@ func (ext *handler) Process(req *http.Request, context *handlers.RequestContext)
 	ext.documentManager.SyncACL(userInfo)
 
 	return modRequest, nil
-}
-
-func (ext *handler) isWhiteListed(name string) bool {
-	if _, ok := ext.whitelisted[name]; ok {
-		return true
-	}
-	return false
 }
 
 func (ext *handler) hasInfraRole(context *handlers.RequestContext) bool {
