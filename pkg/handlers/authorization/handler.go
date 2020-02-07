@@ -22,9 +22,10 @@ const (
 )
 
 type authorizationHandler struct {
-	config   *config.Options
-	osClient clients.OpenShiftClient
-	cache    *rolesService
+	config        *config.Options
+	osClient      clients.OpenShiftClient
+	cache         *rolesService
+	fnCNExtractor certCNExtractor
 }
 
 //NewHandlers is the initializer for this handler
@@ -35,10 +36,10 @@ func NewHandlers(opts *config.Options) (_ []handlers.RequestHandler) {
 	}
 	return []handlers.RequestHandler{
 		&authorizationHandler{
-			config:   opts,
-			osClient: osClient,
-			cache:    NewRolesProjectsService(1000, opts.CacheExpiry, opts.AuthBackEndRoles, osClient),
-			// defaultbackendRoleConfig,
+			config:        opts,
+			osClient:      osClient,
+			cache:         NewRolesProjectsService(1000, opts.CacheExpiry, opts.AuthBackEndRoles, osClient),
+			fnCNExtractor: defaultCertCNExtractor,
 		},
 	}
 }
@@ -48,6 +49,11 @@ func (auth *authorizationHandler) Name() string {
 
 func (auth *authorizationHandler) Process(req *http.Request, context *handlers.RequestContext) (*http.Request, error) {
 	log.Tracef("Processing request in handler %q", auth.Name())
+	context.WhiteListedNames = auth.config.AuthWhiteListedNames
+	if auth.isWhiteListed(req) {
+		log.Trace("Skipping processing in request because CN is whitelisted")
+		return req, nil
+	}
 	context.Token = getBearerTokenFrom(req)
 	if context.Token == "" {
 		log.Debugf("Skipping %s as there is no bearer token present", auth.Name())
@@ -90,4 +96,21 @@ func getBearerTokenFrom(req *http.Request) string {
 		return parts[1]
 	}
 	return ""
+}
+
+func (auth *authorizationHandler) isWhiteListed(req *http.Request) bool {
+	if auth.fnCNExtractor == nil {
+		return false
+	}
+	name := auth.fnCNExtractor(req)
+	if name == "" {
+		return false
+	}
+	for _, whitelisted := range auth.config.AuthWhiteListedNames {
+		if name == whitelisted {
+			log.Tracef("CN %s is whitelisted", name)
+			return true
+		}
+	}
+	return false
 }
