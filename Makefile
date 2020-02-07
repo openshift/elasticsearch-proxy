@@ -39,7 +39,7 @@ vendor:
 .PHONY: vendor
 
 image:
-	imagebuilder -f Dockerfile -t $(IMAGE_REPOSITORY_NAME)/$(BIN_NAME) .
+	imagebuilder -f Dockerfile -t $(IMAGE_REPOSITORY_NAME) .
 .PHONY: images
 
 clean:
