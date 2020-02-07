@@ -61,6 +61,24 @@ var _ = Describe("Initializing Config options", func() {
 		})
 
 	})
+
+	Describe("when defining the default role name", func() {
+		It("should succeed with an empty value", func() {
+			args := []string{"--auth-default-role-name="}
+			options, err := config.Init(args)
+			Expect(err).Should(BeNil())
+			Expect(options).Should(Not(BeNil()))
+			Expect(options.AuthDefaultRoleName).Should(BeEmpty())
+		})
+		It("should succeed with any value", func() {
+			args := []string{"--auth-default-role-name=foo"}
+			options, err := config.Init(args)
+			Expect(err).Should(BeNil())
+			Expect(options).Should(Not(BeNil()))
+			Expect(options.AuthDefaultRoleName).Should(Equal("foo"))
+		})
+	})
+
 	Describe("when defining auth backend role", func() {
 		Describe("without a valid backendname", func() {
 

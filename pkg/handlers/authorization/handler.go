@@ -82,7 +82,11 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 			context.Roles = append(context.Roles, name)
 		}
 	}
-	req.Header.Add(headerForwardedRoles, strings.Join(context.RoleSet().List(), ","))
+	roleSet := context.RoleSet().List()
+	if auth.config.AuthDefaultRoleName != "" {
+		roleSet = append(roleSet, auth.config.AuthDefaultRoleName)
+	}
+	req.Header.Add(headerForwardedRoles, strings.Join(roleSet, ","))
 	return req, nil
 }
 

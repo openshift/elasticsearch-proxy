@@ -43,6 +43,9 @@ type Options struct {
 	//with no additional processing
 	AuthWhiteListedNames []string `flag:"auth-whitelisted-name"`
 
+	//AuthDefaultRoleName is the role associated to every request
+	AuthDefaultRoleName string `flag:"auth-default-role-name"`
+
 	//OCP Cluster Logging configs
 	cltypes.ExtConfig
 }
