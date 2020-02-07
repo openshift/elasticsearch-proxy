@@ -47,7 +47,7 @@ var _ = Describe("Initializing Config options", func() {
 			options, err := config.Init(args)
 			Expect(err).Should(BeNil())
 			Expect(options).Should(Not(BeNil()))
-			Expect(&url.URL{Scheme: "https", Host: "127.0.0.1:9200", Path: "/"}).Should(Equal(options.ElasticsearchURL))
+			Expect(&url.URL{Scheme: "https", Host: "localhost:9200", Path: "/"}).Should(Equal(options.ElasticsearchURL))
 		})
 	})
 

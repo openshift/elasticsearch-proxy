@@ -71,7 +71,7 @@ func newOptions() *Options {
 	return &Options{
 		ProxyWebSockets:  true,
 		ListeningAddress: ":443",
-		Elasticsearch:    "https://127.0.0.1:9200",
+		Elasticsearch:    "https://localhost:9200",
 		UpstreamFlush:    time.Duration(5) * time.Millisecond,
 		RequestLogging:   false,
 		AuthBackEndRoles: map[string]BackendRoleConfig{},
