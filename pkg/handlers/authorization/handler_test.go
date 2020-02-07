@@ -79,17 +79,17 @@ var _ = Describe("Process", func() {
 		It("should add role headers to the request", func() {
 			entries, ok := req.Header["X-Forwarded-Roles"]
 			Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's roles to be added to be proxy headers: %v", req.Header))
-			Expect(entries).To(Equal([]string{"roleA", "roleB"}))
+			Expect(entries).To(Equal([]string{"roleA,roleB"}))
 		})
 		It("should add a user's projects to the request", func() {
 			entries, ok := req.Header["X-Ocp-Ns"]
 			Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's projects to be added to be proxy headers: %v", req.Header))
-			Expect(entries).To(Equal([]string{"projecta", "projectb"}))
+			Expect(entries).To(Equal([]string{"projecta,projectb"}))
 		})
 		It("should add a user's project uids to the request", func() {
 			entries, ok := req.Header["X-Ocp-Nsuid"]
 			Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a project uids to be added to be proxy headers: %v", req.Header))
-			Expect(entries).To(Equal([]string{"projectauuid", "projectbuuid"}))
+			Expect(entries).To(Equal([]string{"projectauuid,projectbuuid"}))
 		})
 	})
 

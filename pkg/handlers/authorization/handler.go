@@ -3,9 +3,10 @@ package authorization
 import (
 	"errors"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
@@ -62,16 +63,20 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 		req.Header.Set(headerForwardedUser, context.UserName)
 	}
 	context.Projects = rolesProjects.projects
+	projectNames := []string{}
+	projectUIDs := []string{}
 	for _, project := range context.Projects {
-		req.Header.Add(headerForwardedNamespace, project.Name)
-		req.Header.Add(headerForwardedNamespaceUid, project.UUID)
+		projectNames = append(projectNames, project.Name)
+		projectUIDs = append(projectUIDs, project.UUID)
 	}
+	req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
+	req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
 	for name := range auth.config.AuthBackEndRoles {
 		if _, ok := rolesProjects.roles[name]; ok {
 			context.Roles = append(context.Roles, name)
-			req.Header.Add(headerForwardedRoles, name)
 		}
 	}
+	req.Header.Add(headerForwardedRoles, strings.Join(context.RoleSet().List(), ","))
 	return req, nil
 }
 

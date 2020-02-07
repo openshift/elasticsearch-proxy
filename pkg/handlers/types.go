@@ -1,12 +1,15 @@
 package handlers
 
 import (
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
+
 	"log"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 )
@@ -17,6 +20,10 @@ type RequestContext struct {
 	Projects []types.Project
 	Groups   []string
 	Roles    []string
+}
+
+func (context *RequestContext) RoleSet() sets.String {
+	return sets.NewString(context.Roles...)
 }
 
 type Options struct {
