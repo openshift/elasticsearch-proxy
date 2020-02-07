@@ -1,8 +1,9 @@
 package authorization
 
 import (
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 	"time"
+
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 
 	"github.com/bluele/gcache"
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
@@ -56,7 +57,7 @@ func loadFromOpenshift(roleConfig map[string]config.BackendRoleConfig, client cl
 		ctx.UserName = tokenReview.UserName()
 		log.Debugf("User is %q", tokenReview.UserName())
 
-		roles := sar(client, tokenReview.UserName(), roleConfig)
+		roles := evaluateRoles(client, tokenReview.UserName(), roleConfig)
 		projects, err := listProjects(client, token)
 		if err != nil {
 			return nil, err
@@ -65,12 +66,14 @@ func loadFromOpenshift(roleConfig map[string]config.BackendRoleConfig, client cl
 	}
 }
 
-func sar(client clients.OpenShiftClient, userName string, roleConfig map[string]config.BackendRoleConfig) map[string]struct{} {
+func evaluateRoles(client clients.OpenShiftClient, userName string, roleConfig map[string]config.BackendRoleConfig) map[string]struct{} {
 	roles := map[string]struct{}{}
 	for name, sar := range roleConfig {
 		if allowed, err := client.SubjectAccessReview(userName, sar.Namespace, sar.Verb, sar.Resource, sar.ResourceAPIGroup); err == nil {
 			log.Debugf("%q for %q SAR: %v", userName, name, allowed)
-			roles[name] = exists
+			if allowed {
+				roles[name] = exists
+			}
 		} else {
 			log.Warnf("Unable to evaluate %s SAR for user %s", name, userName)
 		}

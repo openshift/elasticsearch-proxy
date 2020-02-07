@@ -1,10 +1,14 @@
 package authorization
 
 import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"errors"
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 	"testing"
 	"time"
+
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 
 	osprojectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
@@ -18,6 +22,33 @@ import (
 const (
 	token = "ignored"
 )
+
+var _ = Describe("#evaluateRoles", func() {
+
+	It("should only return allowed roles", func() {
+		client := &mockOpenShiftClient{sarResponses: map[string]bool{
+			"allowed":    true,
+			"notallowed": false,
+		}}
+		backendRoles := map[string]config.BackendRoleConfig{
+			"allowed": config.BackendRoleConfig{
+				Namespace:        "anamespace",
+				Verb:             "allowed",
+				Resource:         "someresource",
+				ResourceAPIGroup: "",
+			},
+			"notallowed": config.BackendRoleConfig{
+				Namespace:        "anamespace",
+				Verb:             "notallowed",
+				Resource:         "someresource",
+				ResourceAPIGroup: "",
+			},
+		}
+		roles := evaluateRoles(client, "auser", backendRoles)
+		Expect(roles).To(Equal(map[string]struct{}{"allowed": struct{}{}}))
+	})
+
+})
 
 func TestRolesProjectsService(t *testing.T) {
 	tests := []struct {
@@ -64,6 +95,7 @@ type mockOpenShiftClient struct {
 	subjectAccessErr   error
 	projectsErr        error
 	tokenReviewCounter int
+	sarResponses       map[string]bool
 }
 
 func (c *mockOpenShiftClient) TokenReview(token string) (*clients.TokenReview, error) {
@@ -74,6 +106,11 @@ func (c *mockOpenShiftClient) TokenReview(token string) (*clients.TokenReview, e
 }
 
 func (c *mockOpenShiftClient) SubjectAccessReview(user, namespace, verb, resource, apiGroup string) (bool, error) {
+	if c.sarResponses != nil {
+		if value, ok := c.sarResponses[verb]; ok {
+			return value, nil
+		}
+	}
 	return true, c.subjectAccessErr
 }
 
