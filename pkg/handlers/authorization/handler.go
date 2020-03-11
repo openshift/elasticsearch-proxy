@@ -47,70 +47,62 @@ func (auth *authorizationHandler) Name() string {
 	return "authorization"
 }
 
+//Process the request for authorization. The handler first attempts to get userinfo using bearer token
+//and falls back to the certificate subject or fails
 func (auth *authorizationHandler) Process(req *http.Request, context *handlers.RequestContext) (*http.Request, error) {
 	log.Tracef("Processing request in handler %q", auth.Name())
-	context.WhiteListedNames = auth.config.AuthWhiteListedNames
-	if subject, ok := auth.whiteListedSubject(req); ok {
-		req.Header.Set(headerForwardedUser, subject)
-		return req, nil
-	}
 	context.Token = getBearerTokenFrom(req)
-	if context.Token == "" {
-		log.Debugf("Skipping %s as there is no bearer token present", auth.Name())
-		return req, errors.New("missing bearer token")
-	}
 	sanitizeHeaders(req)
-	rolesProjects, err := auth.cache.getRolesAndProjects(context.Token)
-	if err != nil {
-		return req, fmt.Errorf("could not run SAR or fech projects: %v", err)
-	}
-	context.UserName = rolesProjects.review.UserName()
-	if rolesProjects.review.UserName() != "" {
-		req.Header.Set(headerForwardedUser, context.UserName)
-	}
-	context.Projects = rolesProjects.projects
-	projectNames := []string{}
-	projectUIDs := []string{}
-	for _, project := range context.Projects {
-		projectNames = append(projectNames, project.Name)
-		projectUIDs = append(projectUIDs, project.UUID)
-	}
-	req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
-	req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
-	for name := range auth.config.AuthBackEndRoles {
-		if _, ok := rolesProjects.roles[name]; ok {
-			context.Roles = append(context.Roles, name)
+	if context.Token != "" {
+		rolesProjects, err := auth.cache.getRolesAndProjects(context.Token)
+		if err != nil {
+			return req, fmt.Errorf("Could not determine the user or their roles: %v", err)
 		}
+		context.UserName = rolesProjects.review.UserName()
+		if context.UserName == "" {
+			log.Trace("Unable to determine a user's identify from bearer token")
+			return req, errors.New("Unable to determine username")
+		}
+		req.Header.Set(headerForwardedUser, context.UserName)
+		context.Projects = rolesProjects.projects
+		projectNames := []string{}
+		projectUIDs := []string{}
+		for _, project := range context.Projects {
+			projectNames = append(projectNames, project.Name)
+			projectUIDs = append(projectUIDs, project.UUID)
+		}
+		req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
+		req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
+		for name := range auth.config.AuthBackEndRoles {
+			if _, ok := rolesProjects.roles[name]; ok {
+				context.Roles = append(context.Roles, name)
+			}
+		}
+		req.Header.Add(headerForwardedRoles, strings.Join(context.RoleSet().List(), ","))
+	} else {
+		subject := auth.fnSubjectExtractor(req)
+		if strings.TrimSpace(subject) == "" {
+			log.Trace("Unable to determine a user's identify from certificate subject")
+			return req, errors.New("Unable to determine username")
+		}
+		req.Header.Set(headerForwardedUser, subject)
 	}
-	req.Header.Add(headerForwardedRoles, strings.Join(context.RoleSet().List(), ","))
+	log.Tracef("Authenticated user %q", req.Header.Get(headerForwardedUser))
 	return req, nil
 }
 
 func sanitizeHeaders(req *http.Request) {
 	req.Header.Del(headerAuthorization)
+	req.Header.Del(headerForwardedRoles)
+	req.Header.Del(headerForwardedUser)
+	req.Header.Del(headerForwardedNamespace)
+	req.Header.Del(headerForwardedNamespaceUid)
 }
 
 func getBearerTokenFrom(req *http.Request) string {
 	parts := strings.SplitN(req.Header.Get(headerAuthorization), " ", 2)
 	if len(parts) > 1 && parts[0] == "Bearer" {
-		return parts[1]
+		return strings.TrimSpace(parts[1])
 	}
 	return ""
-}
-
-func (auth *authorizationHandler) whiteListedSubject(req *http.Request) (string, bool) {
-	if auth.fnSubjectExtractor == nil {
-		return "", false
-	}
-	name := auth.fnSubjectExtractor(req)
-	if name == "" {
-		return "", false
-	}
-	for _, whitelisted := range auth.config.AuthWhiteListedNames {
-		if name == whitelisted {
-			log.Tracef("Subject %s is whitelisted", name)
-			return name, true
-		}
-	}
-	return "", false
 }

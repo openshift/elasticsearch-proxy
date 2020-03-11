@@ -28,6 +28,8 @@ var _ = Describe("Process", func() {
 
 	BeforeEach(func() {
 		req, _ = http.NewRequest("post", "https://someplace", nil)
+		req.Header.Set("X-OCP-NS", "deleteme")
+		req.Header.Set("X-Forwarded-Roles", "deleteme")
 		handler = &authorizationHandler{
 			config: &config.Options{
 				AuthBackEndRoles: map[string]config.BackendRoleConfig{
@@ -35,24 +37,48 @@ var _ = Describe("Process", func() {
 					"roleB": config.BackendRoleConfig{},
 				},
 			},
+			fnSubjectExtractor: func(req *http.Request) string {
+				return "CN=foo,OU=org-unit,O=org"
+			},
 		}
 	})
 
-	Context("when certs with whitelisted Subject is provided", func() {
-		It("should pass the request with no changes", func() {
-			handler.config.AuthWhiteListedNames = []string{"CN=foo,OU=org-unit,O=org"}
-			handler.fnSubjectExtractor = func(req *http.Request) string {
-				return "CN=foo,OU=org-unit,O=org"
-			}
-			req, err = handler.Process(req, context)
-			Expect(err).To(BeNil())
-			Expect(req.Header.Get("X-Forwarded-User")).To(Equal("CN=foo,OU=org-unit,O=org"))
-
-			Expect(context.WhiteListedNames).To(Equal(handler.config.AuthWhiteListedNames))
+	Context("when certs are provided", func() {
+		Context("without bearer token and does not error", func() {
+			BeforeEach(func() {
+				req, err = handler.Process(req, context)
+				Expect(err).To(BeNil())
+			})
+			It("should pass the subject as the user", func() {
+				Expect(req.Header.Get("X-Forwarded-User")).To(Equal("CN=foo,OU=org-unit,O=org"))
+			})
+			It("should sanitize the headers", func() {
+				Expect(req.Header.Get("Authorization")).To(BeEmpty())
+				Expect(req.Header.Get("X-Forwarded-Roles")).To(BeEmpty())
+				Expect(req.Header.Get("X-OCP-NS")).To(BeEmpty())
+				Expect(req.Header.Get("X-OCP-NSUID")).To(BeEmpty())
+			})
+		})
+		Context("with empty bearer token and does not error", func() {
+			It("should pass the subject as the user", func() {
+				req.Header.Set("Authorization", "Bearer  ")
+				req, err = handler.Process(req, context)
+				Expect(err).To(BeNil())
+				Expect(req.Header.Get("X-Forwarded-User")).To(Equal("CN=foo,OU=org-unit,O=org"))
+			})
+		})
+		Context("and it returns an empty subject", func() {
+			It("should error", func() {
+				handler.fnSubjectExtractor = func(req *http.Request) string {
+					return "  "
+				}
+				_, err = handler.Process(req, context)
+				Expect(err).To(Not(BeNil()))
+			})
 		})
 	})
 
-	Context("when it does not error", func() {
+	Context("when a bearer token without certs is provided and it does not error", func() {
 
 		BeforeEach(func() {
 			req.Header.Set("Authorization", "Bearer somebearertoken")
