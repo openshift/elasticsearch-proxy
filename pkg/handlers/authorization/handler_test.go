@@ -38,15 +38,15 @@ var _ = Describe("Process", func() {
 		}
 	})
 
-	Context("when certs with whitelisted CN is provided", func() {
+	Context("when certs with whitelisted Subject is provided", func() {
 		It("should pass the request with no changes", func() {
-			handler.config.AuthWhiteListedNames = []string{"foo"}
-			handler.fnCNExtractor = func(req *http.Request) string {
-				return "foo"
+			handler.config.AuthWhiteListedNames = []string{"CN=foo,OU=org-unit,O=org"}
+			handler.fnSubjectExtractor = func(req *http.Request) string {
+				return "CN=foo,OU=org-unit,O=org"
 			}
 			req, err = handler.Process(req, context)
 			Expect(err).To(BeNil())
-			Expect(req.Header).To(BeEmpty())
+			Expect(req.Header.Get("X-Forwarded-User")).To(Equal("CN=foo,OU=org-unit,O=org"))
 
 			Expect(context.WhiteListedNames).To(Equal(handler.config.AuthWhiteListedNames))
 		})

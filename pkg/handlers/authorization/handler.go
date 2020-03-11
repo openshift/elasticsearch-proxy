@@ -22,10 +22,10 @@ const (
 )
 
 type authorizationHandler struct {
-	config        *config.Options
-	osClient      clients.OpenShiftClient
-	cache         *rolesService
-	fnCNExtractor certCNExtractor
+	config             *config.Options
+	osClient           clients.OpenShiftClient
+	cache              *rolesService
+	fnSubjectExtractor certSubjectExtractor
 }
 
 //NewHandlers is the initializer for this handler
@@ -36,10 +36,10 @@ func NewHandlers(opts *config.Options) []handlers.RequestHandler {
 	}
 	return []handlers.RequestHandler{
 		&authorizationHandler{
-			config:        opts,
-			osClient:      osClient,
-			cache:         NewRolesProjectsService(1000, opts.CacheExpiry, opts.AuthBackEndRoles, osClient),
-			fnCNExtractor: defaultCertCNExtractor,
+			config:             opts,
+			osClient:           osClient,
+			cache:              NewRolesProjectsService(1000, opts.CacheExpiry, opts.AuthBackEndRoles, osClient),
+			fnSubjectExtractor: defaultCertSubjectExtractor,
 		},
 	}
 }
@@ -50,8 +50,8 @@ func (auth *authorizationHandler) Name() string {
 func (auth *authorizationHandler) Process(req *http.Request, context *handlers.RequestContext) (*http.Request, error) {
 	log.Tracef("Processing request in handler %q", auth.Name())
 	context.WhiteListedNames = auth.config.AuthWhiteListedNames
-	if auth.isWhiteListed(req) {
-		log.Trace("Skipping processing in request because CN is whitelisted")
+	if subject, ok := auth.whiteListedSubject(req); ok {
+		req.Header.Set(headerForwardedUser, subject)
 		return req, nil
 	}
 	context.Token = getBearerTokenFrom(req)
@@ -98,19 +98,19 @@ func getBearerTokenFrom(req *http.Request) string {
 	return ""
 }
 
-func (auth *authorizationHandler) isWhiteListed(req *http.Request) bool {
-	if auth.fnCNExtractor == nil {
-		return false
+func (auth *authorizationHandler) whiteListedSubject(req *http.Request) (string, bool) {
+	if auth.fnSubjectExtractor == nil {
+		return "", false
 	}
-	name := auth.fnCNExtractor(req)
+	name := auth.fnSubjectExtractor(req)
 	if name == "" {
-		return false
+		return "", false
 	}
 	for _, whitelisted := range auth.config.AuthWhiteListedNames {
 		if name == whitelisted {
-			log.Tracef("CN %s is whitelisted", name)
-			return true
+			log.Tracef("Subject %s is whitelisted", name)
+			return name, true
 		}
 	}
-	return false
+	return "", false
 }

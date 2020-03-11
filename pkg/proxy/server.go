@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -17,6 +16,7 @@ import (
 	configOptions "github.com/openshift/elasticsearch-proxy/pkg/config"
 	handlers "github.com/openshift/elasticsearch-proxy/pkg/handlers"
 	"github.com/openshift/elasticsearch-proxy/pkg/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
 )
 
@@ -151,7 +151,6 @@ func (p *ProxyServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	log.Printf("Request: %v", alteredReq)
 	p.serveMux.ServeHTTP(rw, alteredReq)
-	// }
 }
 
 func (p *ProxyServer) StructuredError(rw http.ResponseWriter, err error) {
