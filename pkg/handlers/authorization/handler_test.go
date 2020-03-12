@@ -122,6 +122,9 @@ var _ = Describe("Process", func() {
 		It("should add forward user to the request", func() {
 			Expect(req.Header.Get("X-Forwarded-User")).To(Equal("myname"))
 		})
+		It("should add forwarded for header to the request", func() {
+			Expect(req.Header.Get("X-Forwarded-For")).To(Equal("localhost"))
+		})
 		It("should add role headers to the request", func() {
 			entries, ok := req.Header["X-Forwarded-Roles"]
 			Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's roles to be added to be proxy headers: %v", req.Header))
