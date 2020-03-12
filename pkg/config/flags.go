@@ -15,6 +15,11 @@ func newFlagSet() *flag.FlagSet {
 	flagSet.String("tls-cert", "", "path to certificate file")
 	flagSet.String("tls-key", "", "path to private key file")
 	flagSet.String("tls-client-ca", "", "path to a CA file for admitting client certificates.")
+
+	flagSet.String("metrics-listening-address", "", "<addr>:<port> to listen on for HTTPS metrics clients")
+	flagSet.String("metrics-tls-cert", "", "path to certificate file from the metrics service")
+	flagSet.String("metrics-tls-key", "", "path to private key file from the metrics service")
+
 	flagSet.String("elasticsearch-url", "https://localhost:9200", "The default URL to Elasticsearch")
 
 	flagSet.Bool("ssl-insecure-skip-verify", false, "skip validation of certificates presented when using HTTPS")

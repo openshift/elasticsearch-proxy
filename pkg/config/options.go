@@ -22,6 +22,10 @@ type Options struct {
 	TLSClientCAFile  string   `flag:"tls-client-ca"`
 	OpenShiftCAs     []string `flag:"openshift-ca"`
 
+	MetricsListeningAddress string `flag:"metrics-listening-address"`
+	MetricsTLSCertFile      string `flag:"metrics-tls-cert"`
+	MetricsTLSKeyFile       string `flag:"metrics-tls-key"`
+
 	Elasticsearch    string `flag:"elasticsearch-url"`
 	ElasticsearchURL *url.URL
 	UpstreamFlush    time.Duration `flag:"upstream-flush"`
@@ -105,6 +109,10 @@ func (o *Options) Validate() error {
 
 	if len(o.TLSClientCAFile) > 0 && (len(o.TLSKeyFile) == 0 || len(o.TLSCertFile) == 0) {
 		msgs = append(msgs, "tls-client-ca requires tls-key-file or tls-cert-file to be set to listen on tls")
+	}
+
+	if o.MetricsListeningAddress != "" && (o.MetricsTLSCertFile == "" || o.MetricsTLSKeyFile == "") {
+		msgs = append(msgs, "metrics-listening-address requires metrics-tls-cert and metrics-tls-key to be set")
 	}
 
 	//Auth Handler validations
