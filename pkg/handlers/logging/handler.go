@@ -1,7 +1,7 @@
 // largely adapted from https://github.com/gorilla/handlers/blob/master/handlers.go
 // to add logging of request duration as last value (and drop referrer)
 
-package proxy
+package logging
 
 import (
 	"fmt"
@@ -71,7 +71,7 @@ type loggingHandler struct {
 	enabled bool
 }
 
-func LoggingHandler(out io.Writer, h http.Handler, v bool) http.Handler {
+func NewHandler(out io.Writer, h http.Handler, v bool) http.Handler {
 	return loggingHandler{out, h, v}
 }
 

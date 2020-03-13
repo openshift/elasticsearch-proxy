@@ -22,7 +22,7 @@ var _ = Describe("Initializing Config options", func() {
 
 	Describe("when defining tls-client-ca without key or certs", func() {
 		It("should fail", func() {
-			args := []string{"--tls-client-ca=/foo/bar"}
+			args := []string{"--tls-client-ca=/foo/bar", "--metrics-tls-cert=/foo/bar", "--metrics-tls-key=/foo/bar"}
 			options, err := config.Init(args)
 			Expect(options).Should(BeNil())
 
@@ -33,11 +33,29 @@ var _ = Describe("Initializing Config options", func() {
 
 	Describe("when defining tls-client-ca and key without certs", func() {
 		It("should fail", func() {
-			args := []string{"--tls-client-ca=/foo/bar", "--tls-key=/foo/bar"}
+			args := []string{"--tls-client-ca=/foo/bar", "--tls-key=/foo/bar", "--metrics-tls-cert=/foo/bar", "--metrics-tls-key=/foo/bar"}
 			options, err := config.Init(args)
 			Expect(options).Should(BeNil())
 			Expect(err.Error()).Should(
 				Equal(errorMessage("tls-client-ca requires tls-key-file or tls-cert-file to be set to listen on tls")))
+		})
+	})
+
+	Describe("when defining metrics-listening-address", func() {
+		It("should fail without metrics-tls-cert", func() {
+			args := []string{"--metrics-listening-address=:60001", "--metrics-tls-key=/foo/bar"}
+			options, err := config.Init(args)
+			Expect(options).Should(BeNil())
+			Expect(err.Error()).Should(
+				Equal(errorMessage("metrics-listening-address requires metrics-tls-cert and metrics-tls-key to be set")))
+		})
+
+		It("should fail without metrics-tls-key", func() {
+			args := []string{"--metrics-listening-address=:60001", "--metrics-tls-cert=/foo/bar"}
+			options, err := config.Init(args)
+			Expect(options).Should(BeNil())
+			Expect(err.Error()).Should(
+				Equal(errorMessage("metrics-listening-address requires metrics-tls-cert and metrics-tls-key to be set")))
 		})
 	})
 

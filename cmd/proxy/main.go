@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	auth "github.com/openshift/elasticsearch-proxy/pkg/handlers/authorization"
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers/logging"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/proxy"
 	log "github.com/sirupsen/logrus"
@@ -32,13 +33,22 @@ func main() {
 
 	var h http.Handler = proxyServer
 	if opts.RequestLogging {
-		h = proxy.LoggingHandler(os.Stdout, h, true)
+		h = logging.NewHandler(os.Stdout, h, true)
 	}
 	s := &proxy.Server{
 		Handler: h,
 		Opts:    opts,
 	}
-	s.ListenAndServe()
+	go s.ListenAndServe()
+
+	if opts.MetricsListeningAddress != "" {
+		m := proxy.MetricsServer{
+			Handler: h,
+			Opts:    opts,
+		}
+		go m.ListenAndServe()
+	}
+	select {}
 }
 
 func initLogging() {

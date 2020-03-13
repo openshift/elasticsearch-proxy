@@ -12,6 +12,7 @@ require (
 	github.com/keegancsmith/rpc v1.1.0 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mreiferson/go-options v0.0.0-20190302064952-20ba7d382d05
+	github.com/newhook/go-symbols v0.0.0-20151212134530-b75dfefa0d23 // indirect
 	github.com/onsi/ginkgo v1.7.0
 	github.com/onsi/gomega v1.4.3
 	github.com/openshift/api v0.0.0-20180830153656-5ad8479f64f1
