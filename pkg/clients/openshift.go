@@ -2,10 +2,11 @@ package clients
 
 import (
 	"fmt"
-	"k8s.io/client-go/tools/clientcmd"
 	"os/user"
 	"path/filepath"
 	"strings"
+
+	"k8s.io/client-go/tools/clientcmd"
 
 	osprojectv1 "github.com/openshift/api/project/v1"
 	log "github.com/sirupsen/logrus"
@@ -142,6 +143,7 @@ func newKubeClient(token string) (*kubernetes.Clientset, error) {
 	}
 	if token != "" {
 		config.BearerToken = token
+		config.BearerTokenFile = ""
 	}
 	log.Tracef("Creating new OpenShift client %v", config.Host)
 	clientset, err := kubernetes.NewForConfig(config)

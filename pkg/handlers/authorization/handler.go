@@ -15,6 +15,7 @@ import (
 
 const (
 	headerAuthorization         = "Authorization"
+	headerForwardedFor          = "X-Forwarded-For"
 	headerForwardedUser         = "X-Forwarded-User"
 	headerForwardedRoles        = "X-Forwarded-Roles"
 	headerForwardedNamespace    = "X-OCP-NS"
@@ -87,6 +88,7 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 		}
 		req.Header.Set(headerForwardedUser, subject)
 	}
+	req.Header.Add(headerForwardedFor, "localhost")
 	log.Tracef("Authenticated user %q", req.Header.Get(headerForwardedUser))
 	return req, nil
 }
