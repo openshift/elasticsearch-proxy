@@ -137,20 +137,23 @@ func NewProxyServer(opts *configOptions.Options) *ProxyServer {
 
 func (p *ProxyServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("Serving request: %s", req.URL.Path)
+	log.Tracef("Content-Length: %v", req.ContentLength)
+	log.Tracef("Headers: %v", req.Header)
 	var err error
 	alteredReq := req
+	responseLogger := &responseLogger{rw}
 	context := handlers.RequestContext{}
 	for _, reqhandler := range p.requestHandlers {
 		alteredReq, err = reqhandler.Process(alteredReq, &context)
 		log.Printf("Handling request %q", reqhandler.Name())
 		if err != nil {
 			log.Printf("Error processing request in handler %s: %v", reqhandler.Name(), err)
-			p.StructuredError(rw, err)
+			p.StructuredError(responseLogger, err)
 			return
 		}
 	}
 	log.Printf("Request: %v", alteredReq)
-	p.serveMux.ServeHTTP(rw, alteredReq)
+	p.serveMux.ServeHTTP(responseLogger, alteredReq)
 }
 
 func (p *ProxyServer) StructuredError(rw http.ResponseWriter, err error) {
