@@ -52,6 +52,8 @@ func (auth *authorizationHandler) Name() string {
 //and falls back to the certificate subject or fails
 func (auth *authorizationHandler) Process(req *http.Request, context *handlers.RequestContext) (*http.Request, error) {
 	log.Tracef("Processing request in handler %q", auth.Name())
+	log.Tracef("ContentLength: %v ", req.ContentLength)
+	log.Tracef("Headers: %v ", req.Header)
 	context.Token = getBearerTokenFrom(req)
 	sanitizeHeaders(req)
 	if context.Token != "" {

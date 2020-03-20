@@ -4,6 +4,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	auth "github.com/openshift/elasticsearch-proxy/pkg/handlers/authorization"
@@ -52,9 +53,9 @@ func main() {
 }
 
 func initLogging() {
-	logLevel := os.Getenv("LOGLEVEL")
-	if logLevel == "" {
-		logLevel = "warn"
+	logLevel := os.Getenv("LOG_LEVEL")
+	if strings.TrimSpace(logLevel) == "" {
+		logLevel = "info"
 	}
 	level, err := log.ParseLevel(logLevel)
 	if err != nil {
