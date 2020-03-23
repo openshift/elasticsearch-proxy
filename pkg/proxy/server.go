@@ -69,7 +69,7 @@ func NewReverseProxy(target *url.URL, upstreamFlush time.Duration, rootCAs []str
 		if len(rootCAs) > 0 {
 			return nil, err
 		}
-		log.Printf("WARN: Failed to configure http2 transport: %v", err)
+		log.Warnf("Failed to configure http2 transport: %v", err)
 	}
 	proxy.Transport = transport
 
@@ -136,7 +136,7 @@ func NewProxyServer(opts *configOptions.Options) *ProxyServer {
 }
 
 func (p *ProxyServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	log.Printf("Serving request: %s", req.URL.Path)
+	log.Debugf("Serving request: %s", req.URL.Path)
 	log.Tracef("Content-Length: %v", req.ContentLength)
 	log.Tracef("Headers: %v", req.Header)
 	var err error
@@ -152,19 +152,19 @@ func (p *ProxyServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	log.Printf("Request: %v", alteredReq)
+	log.Debugf("Request: %v", alteredReq)
 	p.serveMux.ServeHTTP(responseLogger, alteredReq)
 }
 
 func (p *ProxyServer) StructuredError(rw http.ResponseWriter, err error) {
 	structuredError := handlers.NewStructuredError(err)
-	log.Printf("Error %d %s %s", structuredError.Code, structuredError.Message, structuredError.Error)
+	log.Debugf("Error %d %s %s", structuredError.Code, structuredError.Message, structuredError.Error)
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(structuredError.Code)
 	buffer := new(bytes.Buffer)
 	encodingError := json.NewEncoder(buffer).Encode(structuredError)
 	if encodingError != nil {
-		log.Printf("Error writing response body for Error %v", err)
+		log.Errorf("Error writing response body for Error %v", err)
 		return
 	}
 	rw.Write(buffer.Bytes())

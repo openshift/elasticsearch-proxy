@@ -23,13 +23,13 @@ func main() {
 
 	opts, err := config.Init(os.Args[1:])
 	if err != nil {
-		log.Printf("%s", err)
+		log.Errorf("%s", err)
 		os.Exit(1)
 	}
 
 	proxyServer := proxy.NewProxyServer(opts)
 
-	log.Printf("Registering Handlers....")
+	log.Debugf("Registering Handlers....")
 	proxyServer.RegisterRequestHandlers(auth.NewHandlers(opts))
 
 	var h http.Handler = proxyServer
