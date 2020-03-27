@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"crypto/tls"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strings"
@@ -18,7 +18,7 @@ type Server struct {
 
 func (s *Server) ListenAndServe() {
 	if s.Opts.ListeningAddress == "" {
-		log.Fatalf("FATAL: must specify https-addres")
+		log.Fatalf("Must specify https-addres")
 	}
 	s.ServeHTTPS()
 }
@@ -37,20 +37,20 @@ func (s *Server) ServeHTTPS() {
 	config.Certificates = make([]tls.Certificate, 1)
 	config.Certificates[0], err = tls.LoadX509KeyPair(s.Opts.TLSCertFile, s.Opts.TLSKeyFile)
 	if err != nil {
-		log.Fatalf("FATAL: loading tls config (%s, %s) failed - %s", s.Opts.TLSCertFile, s.Opts.TLSKeyFile, err)
+		log.Fatalf("Loading tls config (%s, %s) failed - %s", s.Opts.TLSCertFile, s.Opts.TLSKeyFile, err)
 	}
 
 	if len(s.Opts.TLSClientCAFile) > 0 {
 		config.ClientAuth = tls.VerifyClientCertIfGiven
 		config.ClientCAs, err = util.GetCertPool([]string{s.Opts.TLSClientCAFile}, false)
 		if err != nil {
-			log.Fatalf("FATAL: %s", err)
+			log.Fatalf("Unable to get cert pool: %v", err)
 		}
 	}
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalf("FATAL: listen (%s) failed - %s", addr, err)
+		log.Fatalf("listen (%s) failed - %s", addr, err)
 	}
 	log.Printf("HTTPS: listening on %s", ln.Addr())
 
@@ -59,7 +59,7 @@ func (s *Server) ServeHTTPS() {
 	err = srv.Serve(tlsListener)
 
 	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-		log.Printf("ERROR: https.Serve() - %s", err)
+		log.Errorf("https.Serve() - %s", err)
 	}
 
 	log.Printf("HTTPS: closing %s", tlsListener.Addr())

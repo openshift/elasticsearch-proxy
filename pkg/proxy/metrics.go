@@ -2,7 +2,7 @@ package proxy
 
 import (
 	"crypto/tls"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
 	"strings"
@@ -33,12 +33,12 @@ func (s *MetricsServer) ServeHTTPS() {
 	config.Certificates = make([]tls.Certificate, 1)
 	config.Certificates[0], err = tls.LoadX509KeyPair(s.Opts.MetricsTLSCertFile, s.Opts.MetricsTLSKeyFile)
 	if err != nil {
-		log.Fatalf("FATAL: loading metrics tls config (%s, %s) failed - %s", s.Opts.MetricsTLSCertFile, s.Opts.MetricsTLSKeyFile, err)
+		log.Fatalf("Loading metrics tls config (%s, %s) failed - %s", s.Opts.MetricsTLSCertFile, s.Opts.MetricsTLSKeyFile, err)
 	}
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalf("FATAL: listen (%s) failed - %s", addr, err)
+		log.Fatalf("Listen (%s) failed - %s", addr, err)
 	}
 	log.Printf("HTTPS: listening on %s", ln.Addr())
 
@@ -47,7 +47,7 @@ func (s *MetricsServer) ServeHTTPS() {
 	err = srv.Serve(tlsListener)
 
 	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-		log.Printf("ERROR: https.Serve() - %s", err)
+		log.Errorf("https.Serve() - %s", err)
 	}
 
 	log.Printf("HTTPS: closing %s", tlsListener.Addr())

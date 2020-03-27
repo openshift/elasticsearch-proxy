@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -51,7 +51,7 @@ func NewStructuredError(err error) StructuredError {
 	message := "Internal Error"
 	if strings.HasPrefix(err.Error(), "got") {
 		parts := strings.Split(err.Error(), " ")
-		log.Printf("Parts %q", parts)
+		log.Debugf("Parts %q", parts)
 		if len(parts) >= 2 {
 			if parsedCode, parseError := strconv.Atoi(parts[1]); parseError == nil {
 				code = parsedCode
