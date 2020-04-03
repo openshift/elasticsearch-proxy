@@ -20,6 +20,7 @@ const (
 	headerForwardedRoles        = "X-Forwarded-Roles"
 	headerForwardedNamespace    = "X-OCP-NS"
 	headerForwardedNamespaceUid = "X-OCP-NSUID"
+	headerXForwardedAccessToken = "X-Forwarded-Access-Token"
 )
 
 type authorizationHandler struct {
@@ -104,6 +105,9 @@ func sanitizeHeaders(req *http.Request) {
 }
 
 func getBearerTokenFrom(req *http.Request) string {
+	if token := req.Header.Get(headerXForwardedAccessToken); strings.TrimSpace(token) != "" {
+		return token
+	}
 	parts := strings.SplitN(req.Header.Get(headerAuthorization), " ", 2)
 	if len(parts) > 1 && parts[0] == "Bearer" {
 		return strings.TrimSpace(parts[1])
