@@ -44,7 +44,7 @@ var _ = Describe("Process", func() {
 	})
 
 	Context("when certs are provided", func() {
-		Context("without bearer token and does not error", func() {
+		Context("without access token and does not error", func() {
 			BeforeEach(func() {
 				req, err = handler.Process(req, context)
 				Expect(err).To(BeNil())
@@ -78,8 +78,9 @@ var _ = Describe("Process", func() {
 		})
 	})
 
-	Context("when a bearer token without certs is provided and it does not error", func() {
-
+	// Context("when a bearer token without certs is provided and it does not error", func() {
+	Context("when certs are not provided and it does not error", func() {
+		var otherCacheEntry *rolesProjects
 		BeforeEach(func() {
 			req.Header.Set("Authorization", "Bearer somebearertoken")
 			cacheEntry = &rolesProjects{
@@ -107,10 +108,24 @@ var _ = Describe("Process", func() {
 					},
 				},
 			}
+			otherCacheEntry = &rolesProjects{
+				review: &clients.TokenReview{
+					&authenticationapi.TokenReview{
+						Status: authenticationapi.TokenReviewStatus{
+							User: authenticationapi.UserInfo{
+								Username: "other",
+							},
+						},
+					},
+				},
+			}
 			handler.cache = &rolesService{
-				cache: gcache.New(1).
+				cache: gcache.New(2).
 					LRU().
 					LoaderFunc(func(key interface{}) (interface{}, error) {
+						if key == "1234" {
+							return otherCacheEntry, nil
+						}
 						return cacheEntry, nil
 					}).
 					Build(),
@@ -118,27 +133,42 @@ var _ = Describe("Process", func() {
 			req, err = handler.Process(req, context)
 			Expect(err).To(BeNil())
 		})
+		Context("and has a forwarded access and bearer token", func() {
+			It("should pass the subject as the user", func() {
+				req, err = handler.Process(req, context)
+				Expect(err).To(BeNil())
 
-		It("should add forward user to the request", func() {
-			Expect(req.Header.Get("X-Forwarded-User")).To(Equal("myname"))
+				req.Header.Set("Authorization", "Bearer  abc123")
+				req.Header.Set("X-Forwarded-Access-Token", "1234")
+				req, err = handler.Process(req, context)
+				Expect(err).To(BeNil())
+				Expect(req.Header.Get("Authorization")).To(BeEmpty())
+				Expect(req.Header.Get("X-Forwarded-Access-Token")).To(BeEmpty())
+				Expect(req.Header.Get("X-Forwarded-User")).To(Equal("other"))
+			})
 		})
-		It("should add forwarded for header to the request", func() {
-			Expect(req.Header.Get("X-Forwarded-For")).To(Equal("localhost"))
-		})
-		It("should add role headers to the request", func() {
-			entries, ok := req.Header["X-Forwarded-Roles"]
-			Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's roles to be added to be proxy headers: %v", req.Header))
-			Expect(entries).To(Equal([]string{"roleA,roleB"}))
-		})
-		It("should add a user's projects to the request", func() {
-			entries, ok := req.Header["X-Ocp-Ns"]
-			Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's projects to be added to be proxy headers: %v", req.Header))
-			Expect(entries).To(Equal([]string{"projecta,projectb"}))
-		})
-		It("should add a user's project uids to the request", func() {
-			entries, ok := req.Header["X-Ocp-Nsuid"]
-			Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a project uids to be added to be proxy headers: %v", req.Header))
-			Expect(entries).To(Equal([]string{"projectauuid,projectbuuid"}))
+		Context("and has a bearer token only", func() {
+			It("should add forward user to the request", func() {
+				Expect(req.Header.Get("X-Forwarded-User")).To(Equal("myname"))
+			})
+			It("should add forwarded for header to the request", func() {
+				Expect(req.Header.Get("X-Forwarded-For")).To(Equal("localhost"))
+			})
+			It("should add role headers to the request", func() {
+				entries, ok := req.Header["X-Forwarded-Roles"]
+				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's roles to be added to be proxy headers: %v", req.Header))
+				Expect(entries).To(Equal([]string{"roleA,roleB"}))
+			})
+			It("should add a user's projects to the request", func() {
+				entries, ok := req.Header["X-Ocp-Ns"]
+				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's projects to be added to be proxy headers: %v", req.Header))
+				Expect(entries).To(Equal([]string{"projecta,projectb"}))
+			})
+			It("should add a user's project uids to the request", func() {
+				entries, ok := req.Header["X-Ocp-Nsuid"]
+				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a project uids to be added to be proxy headers: %v", req.Header))
+				Expect(entries).To(Equal([]string{"projectauuid,projectbuuid"}))
+			})
 		})
 	})
 
