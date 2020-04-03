@@ -102,6 +102,7 @@ func sanitizeHeaders(req *http.Request) {
 	req.Header.Del(headerForwardedUser)
 	req.Header.Del(headerForwardedNamespace)
 	req.Header.Del(headerForwardedNamespaceUid)
+	req.Header.Del(headerXForwardedAccessToken)
 }
 
 func getBearerTokenFrom(req *http.Request) string {
