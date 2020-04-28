@@ -1,17 +1,20 @@
 package clusterlogging
 
 import (
+	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	"github.com/openshift/elasticsearch-proxy/pkg/handlers"
 	ac "github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/accesscontrol"
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	clusterLogging = "clusterlogging"
+	kibanaPrefix   = "/.kibana"
 )
 
 type setString map[string]interface{}
@@ -37,38 +40,66 @@ func NewHandlers(opts *config.Options) []handlers.RequestHandler {
 }
 
 func (ext *handler) Process(req *http.Request, context *handlers.RequestContext) (*http.Request, error) {
-	name := context.UserName
-	if context.IsWhiteListed(name) || ext.hasInfraRole(context) {
-		log.Debugf("Skipping additional processing, %s is whitelisted or has the infra role", name)
-		return req, nil
-	}
-	modRequest := req
-	userInfo := newUserInfo(context)
-	// modify kibana request
-	// seed kibana dashboards
-	ext.documentManager.SyncACL(userInfo)
 
-	return modRequest, nil
+	log.Infof("Received context: UserName: %v", context.UserName)
+	log.Infof("Received context: Roles: %v", context.Roles)
+
+	// if we are getting a .kibana/config url...
+	if ext.isKibanaIndex(*req.URL) {
+		kibanaVersion := ext.getKibanaVersion(*req.URL)
+		if kibanaVersion != "" {
+			log.Infof("Received request: kibana ver: %v", kibanaVersion)
+		}
+
+		log.Infof("Received request: Header: %v", req.Header)
+
+		// use ES client and set headers for Index request (WithHeaders) from req...
+		// we let the security plugin correctly choose the tenant -- so we only seed as required
+		// only seed infra and audit if they are an admin role though...
+
+		// to create index pattern:
+		//IndexWithHeader(".kibana", "doc", "index-pattern:app", ext.getIndexPatternBody("app"), req.Header)
+
+		// to set default index pattern:
+		// note: only do this if it doesn't yet exist...
+		//IndexWithHeader(".kibana", "doc", fmt.Sprintf("config:%s", kibanaVersion), ext.getIndexPatternBody("app"), req.Header)
+	}
+
+	return req, nil
 }
 
-func (ext *handler) hasInfraRole(context *handlers.RequestContext) bool {
-	for _, role := range context.Roles {
-		if role == ext.config.InfraRoleName {
-			log.Tracef("%s has the the Infra Role (%s)", context.UserName, ext.config.InfraRoleName)
-			return true
+func (ext *handler) isKibanaIndex(uri url.URL) bool {
+	log.Infof("Evaluating: %v", uri.Path)
+	return strings.HasPrefix(uri.Path, kibanaPrefix)
+}
+
+func (ext *handler) getKibanaVersion(uri url.URL) string {
+
+	version := ""
+
+	// protects against "[/.kibana/_search]" case
+	for _, val := range strings.SplitAfter(uri.Path, "config:") {
+		if strings.HasPrefix(val, kibanaPrefix) {
+			continue
+		}
+
+		// covers "/.kibana/doc/config:6.8.1/_create" case
+		versionSplit := strings.Split(val, "/")
+		if len(versionSplit) > 0 {
+			version = versionSplit[0]
+			break
 		}
 	}
-	return false
+
+	return version
 }
 
-func newUserInfo(context *handlers.RequestContext) *types.UserInfo {
-	info := &types.UserInfo{
-		Username: context.UserName,
-		Projects: context.Projects,
-		Groups:   context.Groups,
-	}
-	log.Tracef("Created userInfo: %+v", info)
-	return info
+func (ext *handler) getIndexPatternBody(patternName string) string {
+	return fmt.Sprintf("{\"type\":\"index-pattern\",\"index-pattern\":{\"title\":\"%s\",\"timeFieldName\":\"@timestamp\"}}", patternName)
+}
+
+func (ext *handler) getDefaultIndexPatternBody(patternName string) string {
+	return fmt.Sprintf("{\"type\":\"config\",\"config\":{\"defaultIndex\":\"%s\"}}", patternName)
 }
 
 func (ext *handler) Name() string {

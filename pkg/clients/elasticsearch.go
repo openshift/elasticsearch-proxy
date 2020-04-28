@@ -187,6 +187,22 @@ func (es *DefaultElasticsearchClient) Index(index, docType, id, body string, ver
 	return readBody(resp)
 }
 
+//IndexWithHeader submits an index request to ES using the provided headers
+func (es *DefaultElasticsearchClient) IndexWithHeader(index, docType, id, body string, header map[string]string) (string, error) {
+	resp, err := es.client.Index(index, strings.NewReader(body),
+		es.client.Index.WithDocumentType(docType),
+		es.client.Index.WithDocumentID(id),
+		es.client.Index.WithHeader(header))
+	if err != nil {
+		log.Tracef("Error executing Elasticsearch PUT %v", err)
+		return "", err
+	}
+	if err != nil {
+		return "", err
+	}
+	return readBody(resp)
+}
+
 //Delete submits a Delete request to ES assuming the given body is of type 'application/json'
 func (es *DefaultElasticsearchClient) Delete(index, docType, id string) (string, error) {
 	resp, err := es.client.Delete(index, id, es.client.Delete.WithDocumentType(docType))

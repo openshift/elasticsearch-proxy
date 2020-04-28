@@ -8,6 +8,7 @@ import (
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	auth "github.com/openshift/elasticsearch-proxy/pkg/handlers/authorization"
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging"
 	"github.com/openshift/elasticsearch-proxy/pkg/handlers/logging"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/proxy"
@@ -31,6 +32,7 @@ func main() {
 
 	log.Debugf("Registering Handlers....")
 	proxyServer.RegisterRequestHandlers(auth.NewHandlers(opts))
+	proxyServer.RegisterRequestHandlers(clusterlogging.NewHandlers(opts))
 
 	var h http.Handler = proxyServer
 	if opts.RequestLogging {
