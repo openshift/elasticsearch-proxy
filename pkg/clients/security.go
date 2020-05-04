@@ -194,3 +194,13 @@ func (sg *DefaultESSecurityClient) FlushACL(docs security.ACLDocuments) error {
 	log.Tracef("Config reload response %v", resp)
 	return err
 }
+
+//IndexWithHeader submits an index request to ES using the provided headers
+func (sg *DefaultESSecurityClient) IndexWithHeader(index, docType, id, body string, header map[string]string) (string, error) {
+	return "", nil
+}
+
+//GetWithHeaders gets the Document using provided headers
+func (sg *DefaultESSecurityClient) GetWithHeader(index, docType, id string, header map[string]string) (string, error) {
+	return "", nil
+}

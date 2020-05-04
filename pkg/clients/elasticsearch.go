@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/bitly/go-simplejson"
 	es "github.com/elastic/go-elasticsearch/v6"
 	"github.com/elastic/go-elasticsearch/v6/esapi"
+	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -47,12 +49,25 @@ type ElasticsearchClient interface {
 	Index(index, docType, id, body string, version int) (string, error)
 	MGet(index string, items MGetRequest) (*MGetResponse, error)
 	Delete(index, docType, id string) (string, error)
+	IndexWithHeader(index, docType, id, body string, header map[string]string) (string, error)
+	GetWithHeader(index, docType, id string, header map[string]string) (string, error)
 }
 
 //DefaultElasticsearchClient is an admin client to query a local instance of Elasticsearch
 type DefaultElasticsearchClient struct {
 	serverURL string
 	client    *es.Client
+}
+
+func NewESClient(opts config.Options) (ElasticsearchClient, error) {
+	if opts.ElasticsearchURL == nil {
+		return nil, fmt.Errorf("The UpstreamURL proxy URL is nil")
+	}
+	esClient, err := NewElasticsearchClient(opts.SSLInsecureSkipVerify, opts.ElasticsearchURL.String(), opts.TLSCertFile, opts.TLSKeyFile, opts.OpenShiftCAs)
+	if err != nil {
+		return nil, err
+	}
+	return esClient, nil
 }
 
 //NewElasticsearchClient is the initializer to create an instance of ES client
@@ -187,6 +202,19 @@ func (es *DefaultElasticsearchClient) Index(index, docType, id, body string, ver
 	return readBody(resp)
 }
 
+//Delete submits a Delete request to ES assuming the given body is of type 'application/json'
+func (es *DefaultElasticsearchClient) Delete(index, docType, id string) (string, error) {
+	resp, err := es.client.Delete(index, id, es.client.Delete.WithDocumentType(docType))
+	if err != nil {
+		log.Tracef("Error executing Elasticsearch DELETE %v", err)
+		return "", err
+	}
+	if err != nil {
+		return "", err
+	}
+	return readBody(resp)
+}
+
 //IndexWithHeader submits an index request to ES using the provided headers
 func (es *DefaultElasticsearchClient) IndexWithHeader(index, docType, id, body string, header map[string]string) (string, error) {
 	resp, err := es.client.Index(index, strings.NewReader(body),
@@ -203,15 +231,19 @@ func (es *DefaultElasticsearchClient) IndexWithHeader(index, docType, id, body s
 	return readBody(resp)
 }
 
-//Delete submits a Delete request to ES assuming the given body is of type 'application/json'
-func (es *DefaultElasticsearchClient) Delete(index, docType, id string) (string, error) {
-	resp, err := es.client.Delete(index, id, es.client.Delete.WithDocumentType(docType))
+//GetWithHeaders gets the Document using provided headers
+func (es *DefaultElasticsearchClient) GetWithHeader(index, docType, id string, header map[string]string) (string, error) {
+	log.Tracef("Get: %s, %s, %s", index, docType, id)
+	resp, err := es.client.Get(index, id, es.client.Get.WithDocumentType(docType),
+		es.client.Get.WithHeader(header))
 	if err != nil {
-		log.Tracef("Error executing Elasticsearch DELETE %v", err)
+		log.Tracef("Error executing Elasticsearch GET %v", err)
 		return "", err
 	}
+	log.Tracef("Response code: %v", resp.StatusCode)
+	body, err := readBody(resp)
 	if err != nil {
 		return "", err
 	}
-	return readBody(resp)
+	return body, nil
 }
