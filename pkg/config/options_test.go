@@ -69,6 +69,27 @@ var _ = Describe("Initializing Config options", func() {
 		})
 	})
 
+	Describe("when defining the admin role", func() {
+		It("should succeed", func() {
+			args := []string{"--auth-admin-role=foo"}
+			options, err := config.Init(args)
+			Expect(err).Should(BeNil())
+			Expect(options).Should(Not(BeNil()))
+			Expect(options.AuthAdminRole).Should(Equal("foo"))
+		})
+	})
+
+	Describe("when defining the default role", func() {
+		It("should succeed", func() {
+			args := []string{"--auth-default-role=foo"}
+			options, err := config.Init(args)
+			Expect(err).Should(BeNil())
+			Expect(options).Should(Not(BeNil()))
+			Expect(options.AuthDefaultRole).Should(Equal("foo"))
+		})
+
+	})
+
 	Describe("when defining whitelisted names", func() {
 		It("should succeed", func() {
 			args := []string{"--auth-whitelisted-name=foo", "--auth-whitelisted-name=bar"}
