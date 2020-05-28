@@ -47,6 +47,13 @@ type Options struct {
 	//with no additional processing
 	AuthWhiteListedNames []string `flag:"auth-whitelisted-name"`
 
+	//AuthAdminRole is the name of the only role that will be
+	//passed on the request if it is found in the list of roles
+	AuthAdminRole string `flag:"auth-admin-role"`
+
+	//AuthDefaultRole is the role every request is assigned
+	AuthDefaultRole string `flag:"auth-default-role"`
+
 	//OCP Cluster Logging configs
 	cltypes.ExtConfig
 }
@@ -83,6 +90,7 @@ func newOptions() *Options {
 		RequestLogging:       false,
 		AuthBackEndRoles:     map[string]BackendRoleConfig{},
 		AuthWhiteListedNames: []string{},
+		AuthAdminRole:        "",
 	}
 }
 

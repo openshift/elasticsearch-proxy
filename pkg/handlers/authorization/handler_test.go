@@ -94,8 +94,9 @@ var _ = Describe("Process", func() {
 					},
 				},
 				roles: map[string]struct{}{
-					"roleA": struct{}{},
-					"roleB": struct{}{},
+					"roleA":        struct{}{},
+					"roleB":        struct{}{},
+					"admin_reader": struct{}{},
 				},
 				projects: []types.Project{
 					types.Project{
@@ -168,6 +169,40 @@ var _ = Describe("Process", func() {
 				entries, ok := req.Header["X-Ocp-Nsuid"]
 				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a project uids to be added to be proxy headers: %v", req.Header))
 				Expect(entries).To(Equal([]string{"projectauuid,projectbuuid"}))
+			})
+
+			Context("and has the spec'd default role", func() {
+
+				BeforeEach(func() {
+					req.Header.Set("Authorization", "Bearer somebearertoken")
+					handler.config.AuthAdminRole = ""
+					handler.config.AuthDefaultRole = "project_reader"
+					req, err = handler.Process(req, context)
+					Expect(err).To(BeNil())
+				})
+
+				It("should update the request to only include the admin role", func() {
+					entries, ok := req.Header["X-Forwarded-Roles"]
+					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
+					Expect(entries).To(Equal([]string{"project_reader,roleA,roleB"}), "Exp. to the default role to apply")
+				})
+			})
+
+			Context("and has the spec'd admin role", func() {
+
+				BeforeEach(func() {
+					req.Header.Set("Authorization", "Bearer somebearertoken")
+					handler.config.AuthAdminRole = "admin_reader"
+					handler.config.AuthBackEndRoles["admin_reader"] = config.BackendRoleConfig{}
+					req, err = handler.Process(req, context)
+					Expect(err).To(BeNil())
+				})
+
+				It("should update the request to only include the admin role", func() {
+					entries, ok := req.Header["X-Forwarded-Roles"]
+					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
+					Expect(entries).To(Equal([]string{"admin_reader"}), "Exp. to find 'admin_reader' in the roles")
+				})
 			})
 		})
 	})

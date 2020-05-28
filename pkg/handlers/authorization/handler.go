@@ -58,6 +58,7 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 	context.Token = getBearerTokenFrom(req)
 	sanitizeHeaders(req)
 	if context.Token != "" {
+		log.Trace("Handling a request with token...")
 		rolesProjects, err := auth.cache.getRolesAndProjects(context.Token)
 		if err != nil {
 			return req, fmt.Errorf("Could not determine the user or their roles: %v", err)
@@ -77,13 +78,21 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 		}
 		req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
 		req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
+		if auth.config.AuthDefaultRole != "" {
+			context.Roles = append(context.Roles, auth.config.AuthDefaultRole)
+		}
 		for name := range auth.config.AuthBackEndRoles {
 			if _, ok := rolesProjects.roles[name]; ok {
 				context.Roles = append(context.Roles, name)
 			}
 		}
+		if context.RoleSet().Has(auth.config.AuthAdminRole) {
+			log.Debugf("User has the configurated admin role %v. Removing all other roles.", auth.config.AuthAdminRole)
+			context.Roles = []string{auth.config.AuthAdminRole}
+		}
 		req.Header.Add(headerForwardedRoles, strings.Join(context.RoleSet().List(), ","))
 	} else {
+		log.Trace("Handling a request without token...")
 		subject := auth.fnSubjectExtractor(req)
 		if strings.TrimSpace(subject) == "" {
 			log.Trace("Unable to determine a user's identify from certificate subject")
