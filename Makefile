@@ -2,6 +2,7 @@ CURPATH=$(PWD)
 GOFLAGS?=
 BIN_NAME=elasticsearch-proxy
 IMAGE_REPOSITORY_NAME=quay.io/openshift/origin-${BIN_NAME}:latest
+LOCAL_IMAGE_TAG=openshift/origin-${BIN_NAME}
 MAIN_PKG=cmd/proxy/main.go
 TARGET_DIR=$(CURPATH)/_output
 TARGET=$(CURPATH)/bin/$(BIN_NAME)
@@ -39,11 +40,11 @@ vendor:
 .PHONY: vendor
 
 image:
-	imagebuilder -f Dockerfile -t $(IMAGE_REPOSITORY_NAME) .
+	podman build -f Dockerfile -t $(LOCAL_IMAGE_TAG) .
 .PHONY: image
 
 deploy-image: image
-	hack/deploy-image.sh
+	IMAGE_TAG=$(LOCAL_IMAGE_TAG) hack/deploy-image.sh
 .PHONY: deploy-image
 
 
