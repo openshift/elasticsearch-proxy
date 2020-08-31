@@ -18,6 +18,7 @@ const (
 	headerForwardedFor          = "X-Forwarded-For"
 	headerForwardedUser         = "X-Forwarded-User"
 	headerForwardedRoles        = "X-Forwarded-Roles"
+	headerForwardedKibanaUser   = "X-OCP-KIBANAUSER"
 	headerForwardedNamespace    = "X-OCP-NS"
 	headerForwardedNamespaceUid = "X-OCP-NSUID"
 	headerXForwardedAccessToken = "X-Forwarded-Access-Token"
@@ -55,20 +56,27 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 	log.Tracef("Processing request in handler %q", auth.Name())
 	log.Tracef("ContentLength: %v ", req.ContentLength)
 	log.Tracef("Headers: %v ", req.Header)
+
 	context.Token = getBearerTokenFrom(req)
 	sanitizeHeaders(req)
+
 	if context.Token != "" {
 		log.Trace("Handling a request with token...")
+
 		rolesProjects, err := auth.cache.getRolesAndProjects(context.Token)
 		if err != nil {
 			return req, fmt.Errorf("Could not determine the user or their roles: %v", err)
 		}
+
 		context.UserName = rolesProjects.review.UserName()
 		if context.UserName == "" {
 			log.Trace("Unable to determine a user's identify from bearer token")
 			return req, errors.New("Unable to determine username")
 		}
+
 		req.Header.Set(headerForwardedUser, context.UserName)
+		req.Header.Set(headerForwardedKibanaUser, sanitizeUsername(context.UserName))
+
 		context.Projects = rolesProjects.projects
 		projectNames := []string{}
 		projectUIDs := []string{}
@@ -76,32 +84,47 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 			projectNames = append(projectNames, project.Name)
 			projectUIDs = append(projectUIDs, project.UUID)
 		}
+
 		req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
 		req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
+
 		if auth.config.AuthDefaultRole != "" {
 			context.Roles = append(context.Roles, auth.config.AuthDefaultRole)
 		}
+
 		for name := range auth.config.AuthBackEndRoles {
 			if _, ok := rolesProjects.roles[name]; ok {
 				context.Roles = append(context.Roles, name)
 			}
 		}
+
 		if context.RoleSet().Has(auth.config.AuthAdminRole) {
 			log.Debugf("User has the configurated admin role %v. Removing all other roles.", auth.config.AuthAdminRole)
 			context.Roles = []string{auth.config.AuthAdminRole}
 		}
+
 		req.Header.Add(headerForwardedRoles, strings.Join(context.RoleSet().List(), ","))
+
 	} else {
 		log.Trace("Handling a request without token...")
+
 		subject := auth.fnSubjectExtractor(req)
 		if strings.TrimSpace(subject) == "" {
 			log.Trace("Unable to determine a user's identify from certificate subject")
 			return req, errors.New("Unable to determine username")
 		}
+
 		req.Header.Set(headerForwardedUser, subject)
+		req.Header.Set(headerForwardedKibanaUser, sanitizeUsername(subject))
 	}
+
 	req.Header.Add(headerForwardedFor, "localhost")
-	log.Tracef("Authenticated user %q", req.Header.Get(headerForwardedUser))
+
+	log.Tracef("Authenticated user %q as kibana user %q",
+		req.Header.Get(headerForwardedUser),
+		req.Header.Get(headerForwardedKibanaUser),
+	)
+
 	return req, nil
 }
 
@@ -109,6 +132,7 @@ func sanitizeHeaders(req *http.Request) {
 	req.Header.Del(headerAuthorization)
 	req.Header.Del(headerForwardedRoles)
 	req.Header.Del(headerForwardedUser)
+	req.Header.Del(headerForwardedKibanaUser)
 	req.Header.Del(headerForwardedNamespace)
 	req.Header.Del(headerForwardedNamespaceUid)
 	req.Header.Del(headerXForwardedAccessToken)
@@ -123,4 +147,12 @@ func getBearerTokenFrom(req *http.Request) string {
 		return strings.TrimSpace(parts[1])
 	}
 	return ""
+}
+
+// santizeUsername applies the following string replace actions
+// on the original username to mitigate open issues with
+// OpenDistro Security:
+// - Remove all dots: https://github.com/opendistro-for-elasticsearch/security/issues/74
+func sanitizeUsername(s string) string {
+	return strings.ReplaceAll(s, ".", "")
 }
