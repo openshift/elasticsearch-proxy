@@ -23,7 +23,7 @@ type OpenShiftClient interface {
 	//TokenReview performs a tokenreview for a given token submitting to the apiserver
 	//using the serviceaccount token. It returns a simplejson object of the response
 	TokenReview(token string) (*TokenReview, error)
-	SubjectAccessReview(user, namespace, verb, resource, resourceAPIGroup string) (bool, error)
+	SubjectAccessReview(groups []string, user, namespace, verb, resource, resourceAPIGroup string) (bool, error)
 }
 
 //DefaultOpenShiftClient is the default impl of OpenShiftClient
@@ -100,11 +100,12 @@ func (c *DefaultOpenShiftClient) TokenReview(token string) (*TokenReview, error)
 }
 
 //SubjectAccessReview performs a SAR and returns true if the user is allowed
-func (c *DefaultOpenShiftClient) SubjectAccessReview(user, namespace, verb, resource, resourceAPIGroup string) (bool, error) {
+func (c *DefaultOpenShiftClient) SubjectAccessReview(groups []string, user, namespace, verb, resource, resourceAPIGroup string) (bool, error) {
 	log.Debug("Performing SubjectAccessReview...")
 	sar := &authorizationapi.SubjectAccessReview{
 		Spec: authorizationapi.SubjectAccessReviewSpec{
-			User: user,
+			User:   user,
+			Groups: groups,
 		},
 	}
 	if strings.HasPrefix(resource, "/") {

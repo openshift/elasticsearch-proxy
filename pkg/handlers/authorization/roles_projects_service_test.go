@@ -44,7 +44,8 @@ var _ = Describe("#evaluateRoles", func() {
 				ResourceAPIGroup: "",
 			},
 		}
-		roles := evaluateRoles(client, "auser", backendRoles)
+		groups := []string{}
+		roles := evaluateRoles(client, "auser", groups, backendRoles)
 		Expect(roles).To(Equal(map[string]struct{}{"allowed": struct{}{}}))
 	})
 
@@ -68,6 +69,7 @@ func TestRolesProjectsService(t *testing.T) {
 		if test.err == nil {
 			require.Nil(t, err)
 			assert.Equal(t, "jdoe", rolesAndProjects.review.UserName())
+			assert.Equal(t, []string{"foo", "bar"}, rolesAndProjects.review.Groups())
 			assert.Equal(t, test.roles, rolesAndProjects.roles)
 			p := []types.Project{{Name: "myproject"}}
 			assert.Equal(t, p, rolesAndProjects.projects)
@@ -101,11 +103,11 @@ type mockOpenShiftClient struct {
 func (c *mockOpenShiftClient) TokenReview(token string) (*clients.TokenReview, error) {
 	c.tokenReviewCounter++
 	return &clients.TokenReview{&authenticationv1.TokenReview{
-		Status: authenticationv1.TokenReviewStatus{User: authenticationv1.UserInfo{Username: "jdoe"}}},
+		Status: authenticationv1.TokenReviewStatus{User: authenticationv1.UserInfo{Username: "jdoe", Groups: []string{"foo", "bar"}}}},
 	}, c.tokenReviewErr
 }
 
-func (c *mockOpenShiftClient) SubjectAccessReview(user, namespace, verb, resource, apiGroup string) (bool, error) {
+func (c *mockOpenShiftClient) SubjectAccessReview(groups []string, user, namespace, verb, resource, apiGroup string) (bool, error) {
 	if c.sarResponses != nil {
 		if value, ok := c.sarResponses[verb]; ok {
 			return value, nil
