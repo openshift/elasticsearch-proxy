@@ -55,9 +55,10 @@ func loadFromOpenshift(roleConfig map[string]config.BackendRoleConfig, client cl
 		}
 		ctx := &handlers.RequestContext{}
 		ctx.UserName = tokenReview.UserName()
-		log.Debugf("User is %q", tokenReview.UserName())
+		ctx.Groups = tokenReview.Groups()
+		log.Debugf("User is %q in Groups: %v", ctx.UserName, ctx.Groups)
 
-		roles := evaluateRoles(client, tokenReview.UserName(), roleConfig)
+		roles := evaluateRoles(client, ctx.UserName, ctx.Groups, roleConfig)
 		projects, err := listProjects(client, token)
 		if err != nil {
 			return nil, err
@@ -66,10 +67,10 @@ func loadFromOpenshift(roleConfig map[string]config.BackendRoleConfig, client cl
 	}
 }
 
-func evaluateRoles(client clients.OpenShiftClient, userName string, roleConfig map[string]config.BackendRoleConfig) map[string]struct{} {
+func evaluateRoles(client clients.OpenShiftClient, userName string, groups []string, roleConfig map[string]config.BackendRoleConfig) map[string]struct{} {
 	roles := map[string]struct{}{}
 	for name, sar := range roleConfig {
-		if allowed, err := client.SubjectAccessReview(userName, sar.Namespace, sar.Verb, sar.Resource, sar.ResourceAPIGroup); err == nil {
+		if allowed, err := client.SubjectAccessReview(groups, userName, sar.Namespace, sar.Verb, sar.Resource, sar.ResourceAPIGroup); err == nil {
 			log.Debugf("%q for %q SAR: %v", userName, name, allowed)
 			if allowed {
 				roles[name] = exists
