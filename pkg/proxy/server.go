@@ -122,7 +122,7 @@ func NewProxyServer(opts *configOptions.Options) *ProxyServer {
 	path := u.Path
 	switch u.Scheme {
 	case "http", "https":
-		log.Printf("mapping path %q => upstream %q", path, u)
+		log.Infof("mapping path %q => upstream %q", path, u)
 		proxy := NewWebSocketOrRestReverseProxy(u, opts)
 		serveMux.Handle(path, proxy)
 
@@ -145,7 +145,7 @@ func (p *ProxyServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	context := handlers.RequestContext{}
 	for _, reqhandler := range p.requestHandlers {
 		alteredReq, err = reqhandler.Process(alteredReq, &context)
-		log.Printf("Handling request %q", reqhandler.Name())
+		log.Debugf("Handling request %q", reqhandler.Name())
 		if err != nil {
 			log.Printf("Error processing request in handler %s: %v", reqhandler.Name(), err)
 			p.StructuredError(responseLogger, err)
