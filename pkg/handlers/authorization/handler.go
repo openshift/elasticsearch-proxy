@@ -2,7 +2,6 @@ package authorization
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -61,7 +60,7 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 		log.Trace("Handling a request with token...")
 		rolesProjects, err := auth.cache.getRolesAndProjects(context.Token)
 		if err != nil {
-			return req, fmt.Errorf("Could not determine the user or their roles: %v", err)
+			return req, err
 		}
 		context.UserName = rolesProjects.review.UserName()
 		if context.UserName == "" {

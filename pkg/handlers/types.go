@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -44,6 +45,12 @@ type StructuredError struct {
 	Code    int    `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
 	Error   error  `json:"error,omitempty"`
+}
+
+//NewError returns an error with a code and message that can be returned
+//as a structured error understandable by Kibana
+func NewError(code, message string) error {
+	return fmt.Errorf("got %s %s", code, message)
 }
 
 func NewStructuredError(err error) StructuredError {
