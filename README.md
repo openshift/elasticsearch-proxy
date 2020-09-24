@@ -14,3 +14,7 @@ Features:
 - [ ] Dynamically creates a kibana index for non infra users
 
 This proxy is inspired by the [oauth-proxy](https://raw.githubusercontent.com/openshift/oauth-proxy) and the openshift-elasticsearch-plugin
+
+## Contributions
+
+To contribute to the development of elasticsearch-proxy, see  [REVIEW.md](./REVIEW.md)
