@@ -49,9 +49,13 @@ func loadFromOpenshift(roleConfig map[string]config.BackendRoleConfig, client cl
 	return func(key interface{}) (interface{}, error) {
 		token := key.(string)
 		tokenReview, err := client.TokenReview(token)
+		log.Debugf("TokenReview: %v", tokenReview)
 		if err != nil {
 			log.Errorf("Error fetching user info %v", err)
 			return nil, err
+		}
+		if !tokenReview.Status.Authenticated {
+			return nil, handlers.NewError("401", tokenReview.Status.Error)
 		}
 		ctx := &handlers.RequestContext{}
 		ctx.UserName = tokenReview.UserName()
