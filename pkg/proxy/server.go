@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"net/http/pprof"
 	"net/url"
 	"strings"
 	"time"
@@ -121,6 +122,13 @@ func NewWebSocketOrRestReverseProxy(u *url.URL, opts *configOptions.Options) (re
 
 func NewProxyServer(opts *configOptions.Options) *ProxyServer {
 	serveMux := http.NewServeMux()
+
+	serveMux.HandleFunc("/debug/pprof/", pprof.Index)
+	serveMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	serveMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	serveMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	serveMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
 	u := opts.ElasticsearchURL
 	path := u.Path
 	switch u.Scheme {
