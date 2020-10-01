@@ -82,7 +82,10 @@ func NewElasticsearchClient(skipVerify bool, serverURL, adminCert, adminKey stri
 			serverURL,
 		},
 		Transport: &http.Transport{
+			MaxIdleConns:          100,
 			MaxIdleConnsPerHost:   10,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
 			ResponseHeaderTimeout: time.Second,
 			DialContext:           (&net.Dialer{Timeout: time.Second}).DialContext,
 			TLSClientConfig: &tls.Config{
