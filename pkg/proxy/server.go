@@ -152,19 +152,19 @@ func (p *ProxyServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log.Tracef("Headers: %v", req.Header)
 	var err error
 	alteredReq := req
-	responseLogger := &responseLogger{rw}
+	responseWriter := NewResponseWriter(rw)
 	context := handlers.RequestContext{}
 	for _, reqhandler := range p.requestHandlers {
 		alteredReq, err = reqhandler.Process(alteredReq, &context)
 		log.Debugf("Handling request %q", reqhandler.Name())
 		if err != nil {
-			log.Printf("Error processing request in handler %s: %v", reqhandler.Name(), err)
-			p.StructuredError(responseLogger, err)
+			log.Errorf("Error processing request in handler %s: %v", reqhandler.Name(), err)
+			p.StructuredError(responseWriter, err)
 			return
 		}
 	}
 	log.Debugf("Request: %v", alteredReq)
-	p.serveMux.ServeHTTP(responseLogger, alteredReq)
+	p.serveMux.ServeHTTP(responseWriter, alteredReq)
 }
 
 func (p *ProxyServer) StructuredError(rw http.ResponseWriter, err error) {
