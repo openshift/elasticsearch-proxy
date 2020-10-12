@@ -3,7 +3,7 @@ package authorization
 import (
 	"time"
 
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
+	"github.com/openshift/elasticsearch-proxy/pkg/apis"
 
 	"github.com/bluele/gcache"
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
@@ -33,7 +33,7 @@ func NewRolesProjectsService(size int, expiry time.Duration, roleConfig map[stri
 type rolesProjects struct {
 	review   *clients.TokenReview
 	roles    map[string]struct{}
-	projects []types.Project
+	projects []apis.Project
 }
 
 func (s *rolesService) getRolesAndProjects(token string) (*rolesProjects, error) {
@@ -86,16 +86,16 @@ func evaluateRoles(client clients.OpenShiftClient, userName string, groups []str
 	return roles
 }
 
-func listProjects(client clients.OpenShiftClient, token string) ([]types.Project, error) {
+func listProjects(client clients.OpenShiftClient, token string) ([]apis.Project, error) {
 	var namespaces []clients.Namespace
 	namespaces, err := client.ListNamespaces(token)
 	if err != nil {
 		log.Errorf("There was an error fetching projects: %v", err)
 		return nil, err
 	}
-	projects := make([]types.Project, len(namespaces))
+	projects := make([]apis.Project, len(namespaces))
 	for i, ns := range namespaces {
-		projects[i] = types.Project{Name: ns.Name(), UUID: ns.UID()}
+		projects[i] = apis.Project{Name: ns.Name(), UUID: ns.UID()}
 	}
 	return projects, nil
 }

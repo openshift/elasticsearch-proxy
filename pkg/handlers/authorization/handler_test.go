@@ -10,10 +10,10 @@ import (
 
 	authenticationapi "k8s.io/api/authentication/v1"
 
+	"github.com/openshift/elasticsearch-proxy/pkg/apis"
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	"github.com/openshift/elasticsearch-proxy/pkg/handlers"
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 )
 
 var _ = Describe("Process", func() {
@@ -98,12 +98,12 @@ var _ = Describe("Process", func() {
 					"roleB":        struct{}{},
 					"admin_reader": struct{}{},
 				},
-				projects: []types.Project{
-					types.Project{
+				projects: []apis.Project{
+					apis.Project{
 						Name: "projecta",
 						UUID: "projectauuid",
 					},
-					types.Project{
+					apis.Project{
 						Name: "projectb",
 						UUID: "projectbuuid",
 					},

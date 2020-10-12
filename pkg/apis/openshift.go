@@ -1,4 +1,4 @@
-package types
+package apis
 
 //Project is a simple representation of an OpeShift project
 type Project struct {

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	options "github.com/mreiferson/go-options"
-	cltypes "github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -53,17 +52,12 @@ type Options struct {
 
 	//AuthDefaultRole is the role every request is assigned
 	AuthDefaultRole string `flag:"auth-default-role"`
-
-	//OCP Cluster Logging configs
-	cltypes.ExtConfig
 }
 
 //Init the configuration options based on the values passed via the CLI
 func Init(args []string) (*Options, error) {
 	opts := newOptions()
 	flagSet := newFlagSet()
-
-	cltypes.RegisterFlagSets(flagSet)
 
 	flagSet.Parse(args)
 
@@ -145,16 +139,6 @@ func (o *Options) Validate() error {
 			o.AuthBackEndRoles[name] = *roleConfig
 		}
 
-	}
-
-	//Cluster Logging Handler Validations
-	if len(o.RawKibanaIndexMode) > 0 {
-		mode, err := cltypes.ParseKibanaIndexMode(o.RawKibanaIndexMode)
-		if err != nil {
-			msgs = append(msgs, err.Error())
-		} else {
-			o.KibanaIndexMode = mode
-		}
 	}
 
 	if len(msgs) != 0 {

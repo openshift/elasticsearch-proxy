@@ -1,20 +1,19 @@
 package authorization
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gotest.tools/assert"
 
 	"errors"
-	"testing"
 	"time"
 
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
-
 	osprojectv1 "github.com/openshift/api/project/v1"
+	"github.com/openshift/elasticsearch-proxy/pkg/apis"
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -50,34 +49,54 @@ var _ = Describe("#evaluateRoles", func() {
 	})
 
 })
+var _ = Describe("RolesProjectsService", func() {
+	Context("#getRolesAndProjects", func() {
 
-func TestRolesProjectsService(t *testing.T) {
-	tests := []struct {
-		client clients.OpenShiftClient
-		roles  map[string]struct{}
-		err    error
-	}{
-		{client: &mockOpenShiftClient{tokenReviewErr: errors.New("failed to get token")}, err: errors.New("failed to get token")},
-		{client: &mockOpenShiftClient{}, roles: map[string]struct{}{"key": exists}},
-		{client: &mockOpenShiftClient{subjectAccessErr: errors.New("review failed")}, roles: map[string]struct{}{}},
-		{client: &mockOpenShiftClient{projectsErr: errors.New("projects failed")}, err: errors.New("projects failed")},
-	}
+		var (
+			err              error
+			service          *rolesService
+			rolesAndProjects *rolesProjects
 
-	for _, test := range tests {
-		s := NewRolesProjectsService(120, time.Nanosecond, map[string]config.BackendRoleConfig{"key": {}}, test.client)
-		rolesAndProjects, err := s.getRolesAndProjects(token)
-		if test.err == nil {
-			require.Nil(t, err)
-			assert.Equal(t, "jdoe", rolesAndProjects.review.UserName())
-			assert.Equal(t, []string{"foo", "bar"}, rolesAndProjects.review.Groups())
-			assert.Equal(t, test.roles, rolesAndProjects.roles)
-			p := []types.Project{{Name: "myproject"}}
-			assert.Equal(t, p, rolesAndProjects.projects)
-		} else {
-			assert.Equal(t, test.err, err)
-		}
-	}
-}
+			newService = func(client clients.OpenShiftClient) *rolesService {
+				return NewRolesProjectsService(120, time.Nanosecond, map[string]config.BackendRoleConfig{"key": {}}, client)
+			}
+
+			expectValidRolesProjects = func(rolesAndProjects *rolesProjects, err error, expRoles map[string]struct{}) {
+				Expect(err).To(BeNil(), "Exp. role failures to not geneate an error")
+				Expect(rolesAndProjects.review.UserName()).To(Equal("jdoe"))
+				Expect(rolesAndProjects.review.Groups()).To(Equal([]string{"foo", "bar"}))
+				Expect(rolesAndProjects.roles).To(Equal(expRoles), "Exp. a set or valid roles")
+				Expect(rolesAndProjects.projects).To(Equal([]apis.Project{{Name: "myproject"}}))
+			}
+		)
+
+		It("should return the error when unable to do a tokenreview", func() {
+			service = newService(&mockOpenShiftClient{tokenReviewErr: errors.New("failed to get token")})
+			_, err = service.getRolesAndProjects(token)
+			Expect(err).To(BeEquivalentTo(errors.New("failed to get token")))
+		})
+		It("should return a 401 error when token is expired", func() {
+			service = newService(&mockOpenShiftClient{tokenReviewStatusErr: "token expired"})
+			_, err = service.getRolesAndProjects(token)
+			Expect(err).To(BeEquivalentTo(errors.New("got 401 token expired")))
+		})
+		It("should return an empty role set when subjectaccessreviews fail", func() {
+			service = newService(&mockOpenShiftClient{subjectAccessErr: errors.New("review failed")})
+			rolesAndProjects, err = service.getRolesAndProjects(token)
+			expectValidRolesProjects(rolesAndProjects, err, map[string]struct{}{})
+		})
+		It("should return the error when unable to retrieve a project list", func() {
+			service = newService(&mockOpenShiftClient{projectsErr: errors.New("projects failed")})
+			_, err = service.getRolesAndProjects(token)
+			Expect(err).To(BeEquivalentTo(errors.New("projects failed")))
+		})
+		It("should return roles and projects when successful", func() {
+			service = newService(&mockOpenShiftClient{})
+			rolesAndProjects, err = service.getRolesAndProjects(token)
+			expectValidRolesProjects(rolesAndProjects, err, map[string]struct{}{"key": exists})
+		})
+	})
+})
 
 func TestCacheExpiry(t *testing.T) {
 	client := &mockOpenShiftClient{}
@@ -93,17 +112,26 @@ func TestCacheExpiry(t *testing.T) {
 }
 
 type mockOpenShiftClient struct {
-	tokenReviewErr     error
-	subjectAccessErr   error
-	projectsErr        error
-	tokenReviewCounter int
-	sarResponses       map[string]bool
+	tokenReviewStatusErr string
+	tokenReviewErr       error
+	subjectAccessErr     error
+	projectsErr          error
+	tokenReviewCounter   int
+	sarResponses         map[string]bool
 }
 
 func (c *mockOpenShiftClient) TokenReview(token string) (*clients.TokenReview, error) {
 	c.tokenReviewCounter++
+	authenticated := true
+	if c.tokenReviewStatusErr != "" {
+		authenticated = false
+	}
 	return &clients.TokenReview{&authenticationv1.TokenReview{
-		Status: authenticationv1.TokenReviewStatus{User: authenticationv1.UserInfo{Username: "jdoe", Groups: []string{"foo", "bar"}}}},
+		Status: authenticationv1.TokenReviewStatus{
+			Authenticated: authenticated,
+			User:          authenticationv1.UserInfo{Username: "jdoe", Groups: []string{"foo", "bar"}},
+			Error:         c.tokenReviewStatusErr,
+		}},
 	}, c.tokenReviewErr
 }
 
