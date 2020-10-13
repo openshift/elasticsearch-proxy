@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
+	"github.com/openshift/elasticsearch-proxy/pkg/apis"
 
 	log "github.com/sirupsen/logrus"
 
@@ -18,7 +18,7 @@ import (
 type RequestContext struct {
 	Token            string
 	UserName         string
-	Projects         []types.Project
+	Projects         []apis.Project
 	Groups           []string
 	Roles            []string
 	WhiteListedNames []string

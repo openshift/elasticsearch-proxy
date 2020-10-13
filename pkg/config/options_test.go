@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
-	cltypes "github.com/openshift/elasticsearch-proxy/pkg/handlers/clusterlogging/types"
 )
 
 func errorMessage(msgs ...string) string {
@@ -136,27 +135,4 @@ var _ = Describe("Initializing Config options", func() {
 			})
 		})
 	})
-
-	Describe("when defining kibana index mode", func() {
-		Describe("with an unsupported value", func() {
-			It("should fail", func() {
-				args := []string{"--cl-kibana-index-mode=foo"}
-				options, err := config.Init(args)
-				Expect(options).Should(BeNil())
-				Expect(err.Error()).Should(
-					Equal(errorMessage("Unsupported kibanaIndexMode \"foo\"")))
-			})
-		})
-		Describe("with a supported value", func() {
-			It("should succeed", func() {
-				args := []string{"--cl-kibana-index-mode=sharedOps"}
-				options, err := config.Init(args)
-				Expect(err).Should(BeNil())
-				Expect(options).Should(Not(BeNil()))
-				Expect(options.KibanaIndexMode).Should(
-					Equal(cltypes.KibanaIndexModeSharedOps))
-			})
-		})
-	})
-
 })
