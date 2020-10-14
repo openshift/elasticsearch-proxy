@@ -63,7 +63,7 @@ func NewStructuredError(err error) StructuredError {
 			if parsedCode, parseError := strconv.Atoi(parts[1]); parseError == nil {
 				code = parsedCode
 			} else {
-				log.Printf("Unable to parse response code from response %v", err.Error())
+				log.Errorf("Unable to parse response code from response %v", err.Error())
 			}
 		}
 		if len(parts) >= 3 {

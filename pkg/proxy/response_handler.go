@@ -26,3 +26,12 @@ func (rl *responseLogger) WriteHeader(statusCode int) {
 	log.Debugf("Response statusCode %d", statusCode)
 	rl.rw.WriteHeader(statusCode)
 }
+
+func NewResponseWriter(rw http.ResponseWriter) http.ResponseWriter {
+	if log.GetLevel() >= log.DebugLevel {
+		return &responseLogger{
+			rw,
+		}
+	}
+	return rw
+}
