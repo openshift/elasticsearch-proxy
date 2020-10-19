@@ -13,7 +13,10 @@ import (
 
 	configOptions "github.com/openshift/elasticsearch-proxy/pkg/config"
 	handlers "github.com/openshift/elasticsearch-proxy/pkg/handlers"
+	"github.com/openshift/elasticsearch-proxy/pkg/handlers/instrumentation"
 	"github.com/openshift/elasticsearch-proxy/pkg/util"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
 )
@@ -115,6 +118,9 @@ func NewWebSocketOrRestReverseProxy(u *url.URL, opts *configOptions.Options) (re
 func NewProxyServer(opts *configOptions.Options) *ProxyServer {
 	serveMux := http.NewServeMux()
 
+	serveMux.HandleFunc("/metrics", func(rw http.ResponseWriter, r *http.Request) {
+		promhttp.Handler().ServeHTTP(rw, r)
+	})
 	serveMux.HandleFunc("/debug/pprof/", pprof.Index)
 	serveMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	serveMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
@@ -126,8 +132,9 @@ func NewProxyServer(opts *configOptions.Options) *ProxyServer {
 	switch u.Scheme {
 	case "http", "https":
 		log.Infof("mapping path %q => upstream %q", path, u)
+		ins := instrumentation.NewHandler(prometheus.DefaultRegisterer)
 		proxy := NewWebSocketOrRestReverseProxy(u, opts)
-		serveMux.Handle(path, proxy)
+		serveMux.Handle(path, ins.WithHandler("proxy", proxy))
 
 	default:
 		panic(fmt.Sprintf("unknown upstream protocol %s", u.Scheme))
