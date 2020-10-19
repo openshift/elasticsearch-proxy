@@ -57,12 +57,12 @@ func loadFromOpenshift(roleConfig map[string]config.BackendRoleConfig, client cl
 		if !tokenReview.Status.Authenticated {
 			return nil, handlers.NewError("401", tokenReview.Status.Error)
 		}
-		ctx := &handlers.RequestContext{}
-		ctx.UserName = tokenReview.UserName()
-		ctx.Groups = tokenReview.Groups()
-		log.Debugf("User is %q in Groups: %v", ctx.UserName, ctx.Groups)
 
-		roles := evaluateRoles(client, ctx.UserName, ctx.Groups, roleConfig)
+		username := tokenReview.UserName()
+		groups := tokenReview.Groups()
+		log.Debugf("User is %q in Groups: %v", username, groups)
+
+		roles := evaluateRoles(client, username, groups, roleConfig)
 		projects, err := listProjects(client, token)
 		if err != nil {
 			return nil, err

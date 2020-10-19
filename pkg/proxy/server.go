@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -150,21 +149,20 @@ func (p *ProxyServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	log.Debugf("Serving request: %s", req.URL.Path)
 	log.Tracef("Content-Length: %v", req.ContentLength)
 	log.Tracef("Headers: %v", req.Header)
-	var err error
-	alteredReq := req
-	responseWriter := NewResponseWriter(rw)
-	context := handlers.RequestContext{}
+
 	for _, reqhandler := range p.requestHandlers {
-		alteredReq, err = reqhandler.Process(alteredReq, &context)
 		log.Debugf("Handling request %q", reqhandler.Name())
+
+		var err error
+		req, err = reqhandler.Process(req)
 		if err != nil {
 			log.Errorf("Error processing request in handler %s: %v", reqhandler.Name(), err)
-			p.StructuredError(responseWriter, err)
-			return
+			p.StructuredError(rw, err)
+			break
 		}
 	}
-	log.Debugf("Request: %v", alteredReq)
-	p.serveMux.ServeHTTP(responseWriter, alteredReq)
+
+	p.serveMux.ServeHTTP(rw, req)
 }
 
 func (p *ProxyServer) StructuredError(rw http.ResponseWriter, err error) {
@@ -172,11 +170,11 @@ func (p *ProxyServer) StructuredError(rw http.ResponseWriter, err error) {
 	log.Debugf("Error %d %s %s", structuredError.Code, structuredError.Message, structuredError.Error)
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(structuredError.Code)
-	buffer := new(bytes.Buffer)
-	encodingError := json.NewEncoder(buffer).Encode(structuredError)
-	if encodingError != nil {
-		log.Errorf("Error writing response body for Error %v", err)
+
+	b, err := json.Marshal(structuredError)
+	if err != nil {
+		log.Errorf("failed marshalling structured error: %s", err)
 		return
 	}
-	rw.Write(buffer.Bytes())
+	_, _ = rw.Write(b)
 }

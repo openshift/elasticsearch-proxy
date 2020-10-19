@@ -21,7 +21,6 @@ var _ = Describe("Process", func() {
 	var (
 		err        error
 		req        *http.Request
-		context    = &handlers.RequestContext{}
 		handler    *authorizationHandler
 		cacheEntry *rolesProjects
 	)
@@ -46,7 +45,7 @@ var _ = Describe("Process", func() {
 	Context("when certs are provided", func() {
 		Context("without access token and does not error", func() {
 			BeforeEach(func() {
-				req, err = handler.Process(req, context)
+				req, err = handler.Process(req)
 				Expect(err).To(BeNil())
 			})
 			It("should pass the subject as the user", func() {
@@ -58,11 +57,14 @@ var _ = Describe("Process", func() {
 				Expect(req.Header.Get("X-OCP-NS")).To(BeEmpty())
 				Expect(req.Header.Get("X-OCP-NSUID")).To(BeEmpty())
 			})
+			It("should store subject into the request context", func() {
+				Expect(req.Context().Value(handlers.SubjectKey)).To(Equal("CN=foo,OU=org-unit,O=org"))
+			})
 		})
 		Context("with empty bearer token and does not error", func() {
 			It("should pass the subject as the user", func() {
 				req.Header.Set("Authorization", "Bearer  ")
-				req, err = handler.Process(req, context)
+				_, err = handler.Process(req)
 				Expect(err).To(BeNil())
 				Expect(req.Header.Get("X-Forwarded-User")).To(Equal("CN=foo,OU=org-unit,O=org"))
 			})
@@ -72,7 +74,7 @@ var _ = Describe("Process", func() {
 				handler.fnSubjectExtractor = func(req *http.Request) string {
 					return "  "
 				}
-				_, err = handler.Process(req, context)
+				req, err = handler.Process(req)
 				Expect(err).To(Not(BeNil()))
 			})
 		})
@@ -131,21 +133,24 @@ var _ = Describe("Process", func() {
 					}).
 					Build(),
 			}
-			req, err = handler.Process(req, context)
+			req, err = handler.Process(req)
 			Expect(err).To(BeNil())
 		})
 		Context("and has a forwarded access and bearer token", func() {
 			It("should pass the subject as the user", func() {
-				req, err = handler.Process(req, context)
+				req, err = handler.Process(req)
 				Expect(err).To(BeNil())
 
 				req.Header.Set("Authorization", "Bearer  abc123")
 				req.Header.Set("X-Forwarded-Access-Token", "1234")
-				req, err = handler.Process(req, context)
+				req, err = handler.Process(req)
 				Expect(err).To(BeNil())
 				Expect(req.Header.Get("Authorization")).To(BeEmpty())
 				Expect(req.Header.Get("X-Forwarded-Access-Token")).To(BeEmpty())
 				Expect(req.Header.Get("X-Forwarded-User")).To(Equal("other"))
+				Expect(req.Context().Value(handlers.UsernameKey)).To(Equal("other"))
+				Expect(req.Context().Value(handlers.ProjectsKey)).To(BeEmpty())
+				Expect(req.Context().Value(handlers.RolesKey)).To(BeEmpty())
 			})
 		})
 		Context("and has a bearer token only", func() {
@@ -170,6 +175,16 @@ var _ = Describe("Process", func() {
 				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a project uids to be added to be proxy headers: %v", req.Header))
 				Expect(entries).To(Equal([]string{"projectauuid,projectbuuid"}))
 			})
+			It("should store username, roles and project in request context", func() {
+				wantProjects := []apis.Project{
+					{Name: "projecta", UUID: "projectauuid"},
+					{Name: "projectb", UUID: "projectbuuid"},
+				}
+				wantRoles := []string{"roleA", "roleB"}
+				Expect(req.Context().Value(handlers.UsernameKey)).To(Equal("myname"))
+				Expect(req.Context().Value(handlers.ProjectsKey)).To(ConsistOf(wantProjects))
+				Expect(req.Context().Value(handlers.RolesKey)).To(ConsistOf(wantRoles))
+			})
 
 			Context("and has the spec'd default role", func() {
 
@@ -177,7 +192,7 @@ var _ = Describe("Process", func() {
 					req.Header.Set("Authorization", "Bearer somebearertoken")
 					handler.config.AuthAdminRole = ""
 					handler.config.AuthDefaultRole = "project_reader"
-					req, err = handler.Process(req, context)
+					req, err = handler.Process(req)
 					Expect(err).To(BeNil())
 				})
 
@@ -185,6 +200,11 @@ var _ = Describe("Process", func() {
 					entries, ok := req.Header["X-Forwarded-Roles"]
 					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
 					Expect(entries).To(Equal([]string{"project_reader,roleA,roleB"}), "Exp. to the default role to apply")
+				})
+
+				It("should store default role in request context", func() {
+					wantRoles := []string{"project_reader", "roleA", "roleB"}
+					Expect(req.Context().Value(handlers.RolesKey)).To(ConsistOf(wantRoles))
 				})
 			})
 
@@ -194,7 +214,7 @@ var _ = Describe("Process", func() {
 					req.Header.Set("Authorization", "Bearer somebearertoken")
 					handler.config.AuthAdminRole = "admin_reader"
 					handler.config.AuthBackEndRoles["admin_reader"] = config.BackendRoleConfig{}
-					req, err = handler.Process(req, context)
+					req, err = handler.Process(req)
 					Expect(err).To(BeNil())
 				})
 
@@ -202,6 +222,11 @@ var _ = Describe("Process", func() {
 					entries, ok := req.Header["X-Forwarded-Roles"]
 					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
 					Expect(entries).To(Equal([]string{"admin_reader"}), "Exp. to find 'admin_reader' in the roles")
+				})
+
+				It("should store admin role in request context", func() {
+					wantRoles := []string{"admin_reader"}
+					Expect(req.Context().Value(handlers.RolesKey)).To(ConsistOf(wantRoles))
 				})
 			})
 		})
