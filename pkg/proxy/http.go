@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"crypto/tls"
-	log "github.com/sirupsen/logrus"
-	"net"
 	"net/http"
-	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 	"github.com/openshift/elasticsearch-proxy/pkg/util"
@@ -17,50 +17,51 @@ type Server struct {
 }
 
 func (s *Server) ListenAndServe() {
-	if s.Opts.ListeningAddress == "" {
-		log.Fatalf("Must specify https-addres")
-	}
-	s.ServeHTTPS()
-}
-
-func (s *Server) ServeHTTPS() {
 	addr := s.Opts.ListeningAddress
-	config := &tls.Config{
+	if addr == "" {
+		log.Fatal("missing proxy listening address")
+	}
+
+	certFile := s.Opts.TLSCertFile
+	if certFile == "" {
+		log.Fatal("missing TLS proxy server certificate file")
+	}
+
+	keyFile := s.Opts.TLSKeyFile
+	if keyFile == "" {
+		log.Fatal("missing TLS proxy server key file")
+	}
+
+	cfg := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		MaxVersion: tls.VersionTLS12,
-	}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
+		NextProtos: []string{"http/1.1"},
 	}
 
-	var err error
-	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(s.Opts.TLSCertFile, s.Opts.TLSKeyFile)
-	if err != nil {
-		log.Fatalf("Loading tls config (%s, %s) failed - %s", s.Opts.TLSCertFile, s.Opts.TLSKeyFile, err)
-	}
-
-	if len(s.Opts.TLSClientCAFile) > 0 {
-		config.ClientAuth = tls.VerifyClientCertIfGiven
-		config.ClientCAs, err = util.GetCertPool([]string{s.Opts.TLSClientCAFile}, false)
+	if s.Opts.TLSClientCAFile != "" {
+		cas, err := util.GetCertPool([]string{s.Opts.TLSClientCAFile}, false)
 		if err != nil {
-			log.Fatalf("Unable to get cert pool: %v", err)
+			log.Fatalf("failed to load certificates pool: %v", err)
 		}
+
+		cfg.ClientAuth = tls.VerifyClientCertIfGiven
+		cfg.ClientCAs = cas
 	}
 
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Fatalf("listen (%s) failed - %s", addr, err)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      s.Handler,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  60 * time.Second,
+		TLSConfig:    cfg,
 	}
-	log.Printf("HTTPS: listening on %s", ln.Addr())
+	srv.SetKeepAlivesEnabled(true)
 
-	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
-	srv := &http.Server{Handler: s.Handler}
-	err = srv.Serve(tlsListener)
-
-	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-		log.Errorf("https.Serve() - %s", err)
+	err := srv.ListenAndServeTLS(certFile, keyFile)
+	if err != nil && err != http.ErrServerClosed {
+		log.Errorf("failed proxy to listen and serve TLS: %s", err)
 	}
 
-	log.Printf("HTTPS: closing %s", tlsListener.Addr())
+	log.Printf("proxy closing: %s", addr)
 }
