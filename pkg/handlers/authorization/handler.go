@@ -1,11 +1,13 @@
 package authorization
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/clients"
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
@@ -50,58 +52,83 @@ func (auth *authorizationHandler) Name() string {
 
 //Process the request for authorization. The handler first attempts to get userinfo using bearer token
 //and falls back to the certificate subject or fails
-func (auth *authorizationHandler) Process(req *http.Request, context *handlers.RequestContext) (*http.Request, error) {
+func (auth *authorizationHandler) Process(req *http.Request) (*http.Request, error) {
 	log.Tracef("Processing request in handler %q", auth.Name())
 	log.Tracef("ContentLength: %v ", req.ContentLength)
 	log.Tracef("Headers: %v ", req.Header)
-	context.Token = getBearerTokenFrom(req)
+
+	ctx := req.Context()
+	token := getBearerTokenFrom(req)
 	sanitizeHeaders(req)
-	if context.Token != "" {
+
+	if token != "" {
 		log.Trace("Handling a request with token...")
-		rolesProjects, err := auth.cache.getRolesAndProjects(context.Token)
+
+		rolesProjects, err := auth.cache.getRolesAndProjects(token)
 		if err != nil {
 			return req, err
 		}
-		context.UserName = rolesProjects.review.UserName()
-		if context.UserName == "" {
+
+		username := rolesProjects.review.UserName()
+		if username == "" {
 			log.Trace("Unable to determine a user's identify from bearer token")
 			return req, errors.New("Unable to determine username")
 		}
-		req.Header.Set(headerForwardedUser, context.UserName)
-		context.Projects = rolesProjects.projects
+
+		req.Header.Set(headerForwardedUser, username)
+		ctx = context.WithValue(ctx, handlers.UsernameKey, username)
+
+		projects := rolesProjects.projects
+
 		projectNames := []string{}
 		projectUIDs := []string{}
-		for _, project := range context.Projects {
+		for _, project := range projects {
 			projectNames = append(projectNames, project.Name)
 			projectUIDs = append(projectUIDs, project.UUID)
 		}
+
 		req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
 		req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
+		ctx = context.WithValue(ctx, handlers.ProjectsKey, projects)
+
+		var roles []string
 		if auth.config.AuthDefaultRole != "" {
-			context.Roles = append(context.Roles, auth.config.AuthDefaultRole)
+			roles = append(roles, auth.config.AuthDefaultRole)
 		}
+
 		for name := range auth.config.AuthBackEndRoles {
 			if _, ok := rolesProjects.roles[name]; ok {
-				context.Roles = append(context.Roles, name)
+				roles = append(roles, name)
 			}
 		}
-		if context.RoleSet().Has(auth.config.AuthAdminRole) {
+
+		rs := sets.NewString(roles...)
+		if rs.Has(auth.config.AuthAdminRole) {
 			log.Debugf("User has the configurated admin role %v. Removing all other roles.", auth.config.AuthAdminRole)
-			context.Roles = []string{auth.config.AuthAdminRole}
+			roles = []string{auth.config.AuthAdminRole}
+			rs = sets.NewString(roles...)
 		}
-		req.Header.Add(headerForwardedRoles, strings.Join(context.RoleSet().List(), ","))
+
+		req.Header.Add(headerForwardedRoles, strings.Join(rs.List(), ","))
+		ctx = context.WithValue(ctx, handlers.RolesKey, roles)
+
 	} else {
 		log.Trace("Handling a request without token...")
+
 		subject := auth.fnSubjectExtractor(req)
 		if strings.TrimSpace(subject) == "" {
 			log.Trace("Unable to determine a user's identify from certificate subject")
 			return req, errors.New("Unable to determine username")
 		}
+
 		req.Header.Set(headerForwardedUser, subject)
+		ctx = context.WithValue(ctx, handlers.SubjectKey, subject)
 	}
+
 	req.Header.Add(headerForwardedFor, "localhost")
 	log.Tracef("Authenticated user %q", req.Header.Get(headerForwardedUser))
-	return req, nil
+
+	return req.WithContext(ctx), nil
 }
 
 func sanitizeHeaders(req *http.Request) {
