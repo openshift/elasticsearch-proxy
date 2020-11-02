@@ -42,3 +42,4 @@ dist
 .*.swp
 *.iml
 .idea*
+/tmp

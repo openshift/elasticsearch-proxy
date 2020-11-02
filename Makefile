@@ -1,3 +1,8 @@
+export GOROOT=$(shell go env GOROOT)
+export GOFLAGS=-mod=vendor
+export GO111MODULE=on
+
+ARTIFACT_DIR?=./tmp
 CURPATH=$(PWD)
 GOFLAGS?=
 BIN_NAME=elasticsearch-proxy
@@ -15,7 +20,6 @@ ES_CERTS_DIR ?= ""
 CACHE_EXPIRY ?= "5s"
 
 PKGS=$(shell go list ./... | grep -v -E '/vendor/')
-TEST_PKGS=$(shell go list ./... | grep -v -E '/vendor/' | grep -v -E 'cmd')
 TEST_OPTIONS?=
 
 ELASTICSEARCH_NAME ?=elasticsearch
@@ -24,6 +28,9 @@ KUBERNETES_SERVICE_HOST ?= $(shell oc get svc kubernetes -n default -o jsonpath=
 KUBERNETES_SERVICE_PORT ?= $(shell oc get svc kubernetes -n default -o jsonpath='{.spec.ports[?(@.name == "https")].port}')
 
 all: build
+
+artifactdir:
+	@mkdir -p $(ARTIFACT_DIR)
 
 fmt:
 	@gofmt -l -w cmd && \
@@ -53,10 +60,12 @@ clean:
 	rm -rf $(TLS_CERTS_BASEDIR)
 .PHONY: clean
 
-test:
-	@for pkg in $(TEST_PKGS) ; do \
-		go test $(TEST_OPTIONS) $$pkg  ; \
-	done
+COVERAGE_DIR=$(ARTIFACT_DIR)/coverage
+test: artifactdir
+	@mkdir -p $(COVERAGE_DIR)
+	@go test -race -coverprofile=$(COVERAGE_DIR)/test-unit.cov ./pkg/...
+	@go tool cover -html=$(COVERAGE_DIR)/test-unit.cov -o $(COVERAGE_DIR)/test-unit-coverage.html
+	@go tool cover -func=$(COVERAGE_DIR)/test-unit.cov | tail -n 1
 .PHONY: test
 
 copy-k8s-sa:
