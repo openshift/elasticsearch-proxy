@@ -70,7 +70,7 @@ func TestGetCertPool(t *testing.T) {
 	}
 	assert.Equal(t, "Invalid empty list of Root CAs file paths", err.Error())
 
-	tempDir := os.TempDir()
+	tempDir := t.TempDir()
 	defer os.RemoveAll(tempDir)
 	certFile1 := makeTestCertFile(t, testCA1, tempDir)
 	certFile2 := makeTestCertFile(t, testCA2, tempDir)
