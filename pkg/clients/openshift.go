@@ -1,19 +1,22 @@
 package clients
 
 import (
+	"context"
 	"fmt"
 	"os/user"
 	"path/filepath"
 	"strings"
 
-	"k8s.io/client-go/tools/clientcmd"
-
 	osprojectv1 "github.com/openshift/api/project/v1"
+
 	log "github.com/sirupsen/logrus"
+
 	authenticationapi "k8s.io/api/authentication/v1"
 	authorizationapi "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 //OpenShiftClient abstracts kubeclient and calls
@@ -72,7 +75,7 @@ func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Name
 	err = client.RESTClient().
 		Get().
 		Prefix("apis", "project.openshift.io", "v1", "projects").
-		Do().
+		Do(context.TODO()).
 		Into(result)
 	if err != nil {
 		return nil, err
@@ -92,7 +95,7 @@ func (c *DefaultOpenShiftClient) TokenReview(token string) (*TokenReview, error)
 			Token: token,
 		},
 	}
-	result, err := c.client.AuthenticationV1().TokenReviews().Create(review)
+	result, err := c.client.AuthenticationV1().TokenReviews().Create(context.TODO(), review, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +124,7 @@ func (c *DefaultOpenShiftClient) SubjectAccessReview(groups []string, user, name
 			Verb:      verb,
 		}
 	}
-	result, err := c.client.AuthorizationV1().SubjectAccessReviews().Create(sar)
+	result, err := c.client.AuthorizationV1().SubjectAccessReviews().Create(context.TODO(), sar, metav1.CreateOptions{})
 	if err != nil {
 		return false, err
 	}
