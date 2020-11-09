@@ -7,11 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
-
-	osprojectv1 "github.com/openshift/api/project/v1"
-	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	log "github.com/sirupsen/logrus"
 
 	authenticationapi "k8s.io/api/authentication/v1"
@@ -20,6 +15,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	osprojectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 )
 
 //OpenShiftClient abstracts kubeclient and calls
