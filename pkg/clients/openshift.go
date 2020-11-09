@@ -67,6 +67,10 @@ func (ns *Namespace) Name() string {
 
 //ListNamespaces associated with a given token
 func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Namespace, err error) {
+	if len(token) == 0 {
+		return nil, fmt.Errorf("attempted to list namespaces with 0-length token")
+	}
+
 	kubeConfig, err := getConfig()
 	if err != nil {
 		return nil, err
