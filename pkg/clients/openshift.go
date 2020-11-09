@@ -146,8 +146,10 @@ func newKubeClient(token string) (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 	if token != "" {
-		config.BearerToken = token
-		config.BearerTokenFile = ""
+		// sanitize the config to prevent escalations
+		anonConfig := rest.AnonymousClientConfig(config)
+		anonConfig.BearerToken = token
+		config = anonConfig
 	}
 	log.Tracef("Creating new OpenShift client %v", config.Host)
 	clientset, err := kubernetes.NewForConfig(config)
