@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	osprojectv1 "github.com/openshift/api/project/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 
+	osprojectv1 "github.com/openshift/api/project/v1"
+	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	log "github.com/sirupsen/logrus"
 
 	authenticationapi "k8s.io/api/authentication/v1"
@@ -66,21 +69,25 @@ func (ns *Namespace) Name() string {
 
 //ListNamespaces associated with a given token
 func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Namespace, err error) {
-	client, err := newKubeClient(token)
+	kubeConfig, err := getConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	result := &osprojectv1.ProjectList{}
-	err = client.RESTClient().
-		Get().
-		Prefix("apis", "project.openshift.io", "v1", "projects").
-		Do(context.TODO()).
-		Into(result)
+	// sanitize the config to prevent escalations
+	tokenConfig := rest.AnonymousClientConfig(kubeConfig)
+	tokenConfig.BearerToken = token
+
+	projectClient, err := projectv1client.NewForConfig(tokenConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes client: %v", err)
+	}
+
+	projects, err := projectClient.Projects().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	for _, ns := range result.Items {
+	for _, ns := range projects.Items {
 		namespaces = append(namespaces, Namespace{ns})
 	}
 	return namespaces, nil
@@ -133,30 +140,18 @@ func (c *DefaultOpenShiftClient) SubjectAccessReview(groups []string, user, name
 
 // NewOpenShiftClient returns a client for connecting to the api server.
 func NewOpenShiftClient() (OpenShiftClient, error) {
-	c, err := newKubeClient("")
-	if err != nil {
-		return nil, fmt.Errorf("failed not create kubernetes client: %v", err)
-	}
-	return &DefaultOpenShiftClient{client: c}, nil
-}
-
-func newKubeClient(token string) (*kubernetes.Clientset, error) {
 	config, err := getConfig()
 	if err != nil {
 		return nil, err
 	}
-	if token != "" {
-		// sanitize the config to prevent escalations
-		anonConfig := rest.AnonymousClientConfig(config)
-		anonConfig.BearerToken = token
-		config = anonConfig
-	}
-	log.Tracef("Creating new OpenShift client %v", config.Host)
+
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create kubernetes client: %v", err)
 	}
-	return clientset, nil
+
+	log.Tracef("Creating new OpenShift client %v", config.Host)
+	return &DefaultOpenShiftClient{client: clientset}, nil
 }
 
 func getConfig() (*rest.Config, error) {
