@@ -8,7 +8,8 @@ require (
 	github.com/mreiferson/go-options v0.0.0-20190302064952-20ba7d382d05
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
-	github.com/openshift/api v0.0.0-20201103184615-27004eede929
+	github.com/openshift/api v0.0.0-20201123164755-d8862a308f98
+	github.com/openshift/client-go v0.0.0-20201123133249-10558821f936
 	github.com/prometheus/client_golang v1.8.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/yhat/wsutil v0.0.0-20170731153501-1d66fa95c997
