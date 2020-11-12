@@ -89,6 +89,7 @@ func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Name
 	if err != nil {
 		return nil, err
 	}
+	log.Debugf("Fetched projects: %v", projects)
 	for _, ns := range projects.Items {
 		namespaces = append(namespaces, Namespace{ns})
 	}
