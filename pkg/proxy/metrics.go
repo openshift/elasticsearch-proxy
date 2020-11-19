@@ -2,10 +2,10 @@ package proxy
 
 import (
 	"crypto/tls"
-	log "github.com/sirupsen/logrus"
-	"net"
 	"net/http"
-	"strings"
+	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/openshift/elasticsearch-proxy/pkg/config"
 )
@@ -16,39 +16,41 @@ type MetricsServer struct {
 }
 
 func (s *MetricsServer) ListenAndServe() {
-	s.ServeHTTPS()
-}
-
-func (s *MetricsServer) ServeHTTPS() {
 	addr := s.Opts.MetricsListeningAddress
-	config := &tls.Config{
+	if addr == "" {
+		log.Fatal("missing metrics listening address")
+	}
+
+	certFile := s.Opts.MetricsTLSCertFile
+	if certFile == "" {
+		log.Fatal("missing TLS metrics server certificate file")
+	}
+
+	keyFile := s.Opts.MetricsTLSKeyFile
+	if keyFile == "" {
+		log.Fatal("missing TLS metrics server key file")
+	}
+
+	cfg := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		MaxVersion: tls.VersionTLS12,
-	}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"http/1.1"}
+		NextProtos: []string{"http/1.1"},
 	}
 
-	var err error
-	config.Certificates = make([]tls.Certificate, 1)
-	config.Certificates[0], err = tls.LoadX509KeyPair(s.Opts.MetricsTLSCertFile, s.Opts.MetricsTLSKeyFile)
-	if err != nil {
-		log.Fatalf("Loading metrics tls config (%s, %s) failed - %s", s.Opts.MetricsTLSCertFile, s.Opts.MetricsTLSKeyFile, err)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      s.Handler,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		IdleTimeout:  60 * time.Second,
+		TLSConfig:    cfg,
+	}
+	srv.SetKeepAlivesEnabled(true)
+
+	err := srv.ListenAndServeTLS(certFile, keyFile)
+	if err != nil && err != http.ErrServerClosed {
+		log.Errorf("failed metrics to listen and serve TLS: %s", err)
 	}
 
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Fatalf("Listen (%s) failed - %s", addr, err)
-	}
-	log.Printf("HTTPS: listening on %s", ln.Addr())
-
-	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
-	srv := &http.Server{Handler: s.Handler}
-	err = srv.Serve(tlsListener)
-
-	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-		log.Errorf("https.Serve() - %s", err)
-	}
-
-	log.Printf("HTTPS: closing %s", tlsListener.Addr())
+	log.Printf("metrics closing: %s", addr)
 }
