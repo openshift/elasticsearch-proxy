@@ -92,9 +92,13 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/openshift/api v0.0.0-20201103184615-27004eede929
+# github.com/openshift/api v0.0.0-20201123164755-d8862a308f98
 ## explicit
 github.com/openshift/api/project/v1
+# github.com/openshift/client-go v0.0.0-20201123133249-10558821f936
+## explicit
+github.com/openshift/client-go/project/clientset/versioned/scheme
+github.com/openshift/client-go/project/clientset/versioned/typed/project/v1
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/prometheus/client_golang v1.8.0
@@ -364,7 +368,7 @@ k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/workqueue
-# k8s.io/klog/v2 v2.2.0
+# k8s.io/klog/v2 v2.3.0
 k8s.io/klog/v2
 # k8s.io/utils v0.0.0-20200729134348-d5654de09c73
 k8s.io/utils/integer
