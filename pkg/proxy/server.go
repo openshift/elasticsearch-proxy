@@ -23,11 +23,11 @@ import (
 type ProxyServer struct {
 	serveMux http.Handler
 
-	//handlers
+	// handlers
 	requestHandlers []handlers.RequestHandler
 }
 
-//RegisterRequestHandlers adds request handlers to the
+// RegisterRequestHandlers adds request handlers to the
 func (p *ProxyServer) RegisterRequestHandlers(reqHandlers []handlers.RequestHandler) {
 	p.requestHandlers = append(p.requestHandlers, reqHandlers...)
 }
@@ -45,7 +45,6 @@ func (u *UpstreamProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		u.handler.ServeHTTP(w, r)
 	}
-
 }
 
 func NewReverseProxy(target *url.URL, upstreamFlush time.Duration, rootCAs []string) (*httputil.ReverseProxy, error) {
@@ -53,8 +52,12 @@ func NewReverseProxy(target *url.URL, upstreamFlush time.Duration, rootCAs []str
 	proxy.FlushInterval = upstreamFlush
 
 	transport := &http.Transport{
-		MaxIdleConnsPerHost: 500,
-		IdleConnTimeout:     1 * time.Minute,
+		MaxConnsPerHost:       25,
+		MaxIdleConns:          25,
+		MaxIdleConnsPerHost:   25,
+		IdleConnTimeout:       60 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 	if len(rootCAs) > 0 {
 		pool, err := util.GetCertPool(rootCAs, false)
