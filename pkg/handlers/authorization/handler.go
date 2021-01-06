@@ -3,6 +3,7 @@ package authorization
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -83,7 +84,7 @@ func (auth *authorizationHandler) Process(req *http.Request) (*http.Request, err
 		projectNames := []string{}
 		projectUIDs := []string{}
 		for _, project := range projects {
-			projectNames = append(projectNames, project.Name)
+			projectNames = append(projectNames, fmt.Sprintf("%q", project.Name))
 			projectUIDs = append(projectUIDs, project.UUID)
 		}
 
