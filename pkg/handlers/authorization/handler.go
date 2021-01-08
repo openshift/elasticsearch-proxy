@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -72,7 +73,7 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 		projectNames := []string{}
 		projectUIDs := []string{}
 		for _, project := range context.Projects {
-			projectNames = append(projectNames, project.Name)
+			projectNames = append(projectNames, fmt.Sprintf("%q", project.Name))
 			projectUIDs = append(projectUIDs, project.UUID)
 		}
 		req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
