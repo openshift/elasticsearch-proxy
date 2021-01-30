@@ -3,7 +3,6 @@ package proxy
 import (
 	"crypto/tls"
 	"net/http"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -51,9 +50,9 @@ func (s *Server) ListenAndServe() {
 	srv := &http.Server{
 		Addr:         addr,
 		Handler:      s.Handler,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  s.Opts.HTTPReadTimeout,
+		WriteTimeout: s.Opts.HTTPWriteTimeout,
+		IdleTimeout:  s.Opts.HTTPIdleTimeout,
 		TLSConfig:    cfg,
 	}
 	srv.SetKeepAlivesEnabled(true)
