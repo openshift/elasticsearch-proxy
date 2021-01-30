@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//Options are that can be set by Command Line Flag, or Config File
+//Options that can be set by Command Line Flag, or Config File
 type Options struct {
 	ProxyWebSockets  bool     `flag:"proxy-websockets"`
 	ListeningAddress string   `flag:"listening-address"`
@@ -56,6 +56,19 @@ type Options struct {
 
 	//OCP Cluster Logging configs
 	cltypes.ExtConfig
+
+	//net/http.Server timeouts for the server side of the proxy
+	HTTPReadTimeout  time.Duration `flag:"http-read-timeout"`
+	HTTPWriteTimeout time.Duration `flag:"http-write-timeout"`
+	HTTPIdleTimeout  time.Duration `flag:"http-idle-timeout"`
+
+	//net/http.Transport limits and timeouts
+	HTTPMaxConnsPerHost       int           `flag:"http-max-conns-per-host"`
+	HTTPMaxIdleConns          int           `flag:"http-max-idle-conns"`
+	HTTPMaxIdleConnsPerHost   int           `flag:"http-max-idle-conns-per-host"`
+	HTTPIdleConnTimeout       time.Duration `flag:"http-idle-conn-timeout"`
+	HTTPTLSHandshakeTimeout   time.Duration `flag:"http-tls-handshake-timeout"`
+	HTTPExpectContinueTimeout time.Duration `flag:"http-expect-continue-timeout"`
 }
 
 //Init the configuration options based on the values passed via the CLI
@@ -83,14 +96,23 @@ func Init(args []string) (*Options, error) {
 
 func newOptions() *Options {
 	return &Options{
-		ProxyWebSockets:      true,
-		ListeningAddress:     ":443",
-		Elasticsearch:        "https://localhost:9200",
-		UpstreamFlush:        time.Duration(5) * time.Millisecond,
-		RequestLogging:       false,
-		AuthBackEndRoles:     map[string]BackendRoleConfig{},
-		AuthWhiteListedNames: []string{},
-		AuthAdminRole:        "",
+		ProxyWebSockets:           true,
+		ListeningAddress:          ":443",
+		Elasticsearch:             "https://localhost:9200",
+		UpstreamFlush:             time.Duration(5) * time.Millisecond,
+		RequestLogging:            false,
+		AuthBackEndRoles:          map[string]BackendRoleConfig{},
+		AuthWhiteListedNames:      []string{},
+		AuthAdminRole:             "",
+		HTTPReadTimeout:           time.Duration(1) * time.Minute,
+		HTTPWriteTimeout:          time.Duration(1) * time.Minute,
+		HTTPIdleTimeout:           time.Duration(1) * time.Minute,
+		HTTPMaxConnsPerHost:       25,
+		HTTPMaxIdleConns:          25,
+		HTTPMaxIdleConnsPerHost:   25,
+		HTTPIdleConnTimeout:       time.Duration(1) * time.Minute,
+		HTTPTLSHandshakeTimeout:   time.Duration(10) * time.Second,
+		HTTPExpectContinueTimeout: time.Duration(1) * time.Second,
 	}
 }
 
@@ -144,7 +166,34 @@ func (o *Options) Validate() error {
 			}
 			o.AuthBackEndRoles[name] = *roleConfig
 		}
+	}
 
+	if o.HTTPReadTimeout < 0 {
+		msgs = append(msgs, "http-read-timeout can not be negative")
+	}
+	if o.HTTPWriteTimeout < 0 {
+		msgs = append(msgs, "http-write-timeout can not be negative")
+	}
+	if o.HTTPIdleTimeout < 0 {
+		msgs = append(msgs, "http-idle-timeout can not be negative")
+	}
+	if o.HTTPMaxConnsPerHost < 0 {
+		msgs = append(msgs, "http-max-conns-per-host can not be negative")
+	}
+	if o.HTTPMaxIdleConns < 0 {
+		msgs = append(msgs, "http-max-idle-conns can not be negative")
+	}
+	if o.HTTPMaxIdleConnsPerHost < 0 {
+		msgs = append(msgs, "http-max-idle-conns-per-host can not be negative")
+	}
+	if o.HTTPIdleConnTimeout < 0 {
+		msgs = append(msgs, "http-idle-conn-timeout can not be negative")
+	}
+	if o.HTTPTLSHandshakeTimeout < 0 {
+		msgs = append(msgs, "http-tls-handshake-timeout can not be negative")
+	}
+	if o.HTTPExpectContinueTimeout < 0 {
+		msgs = append(msgs, "http-expect-continue-timeout can not be negative")
 	}
 
 	//Cluster Logging Handler Validations

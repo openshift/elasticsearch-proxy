@@ -10,7 +10,6 @@ import (
 	"net/http/pprof"
 	"net/url"
 	"strings"
-	"time"
 
 	"golang.org/x/net/http2"
 
@@ -46,23 +45,22 @@ func (u *UpstreamProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		u.handler.ServeHTTP(w, r)
 	}
-
 }
 
-func NewReverseProxy(target *url.URL, upstreamFlush time.Duration, rootCAs []string) (*httputil.ReverseProxy, error) {
+func NewReverseProxy(target *url.URL, opts *configOptions.Options) (*httputil.ReverseProxy, error) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
-	proxy.FlushInterval = upstreamFlush
+	proxy.FlushInterval = opts.UpstreamFlush
 
 	transport := &http.Transport{
-		MaxConnsPerHost:       25,
-		MaxIdleConns:          25,
-		MaxIdleConnsPerHost:   25,
-		IdleConnTimeout:       60 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
+		MaxConnsPerHost:       opts.HTTPMaxConnsPerHost,
+		MaxIdleConns:          opts.HTTPMaxIdleConns,
+		MaxIdleConnsPerHost:   opts.HTTPMaxIdleConnsPerHost,
+		IdleConnTimeout:       opts.HTTPIdleConnTimeout,
+		TLSHandshakeTimeout:   opts.HTTPTLSHandshakeTimeout,
+		ExpectContinueTimeout: opts.HTTPExpectContinueTimeout,
 	}
-	if len(rootCAs) > 0 {
-		pool, err := util.GetCertPool(rootCAs, false)
+	if len(opts.UpstreamCAs) > 0 {
+		pool, err := util.GetCertPool(opts.UpstreamCAs, false)
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +69,7 @@ func NewReverseProxy(target *url.URL, upstreamFlush time.Duration, rootCAs []str
 		}
 	}
 	if err := http2.ConfigureTransport(transport); err != nil {
-		if len(rootCAs) > 0 {
+		if len(opts.UpstreamCAs) > 0 {
 			return nil, err
 		}
 		log.Warnf("Failed to configure http2 transport: %v", err)
@@ -94,7 +92,7 @@ func setProxyUpstreamHostHeader(proxy *httputil.ReverseProxy, target *url.URL) {
 
 func NewWebSocketOrRestReverseProxy(u *url.URL, opts *configOptions.Options) (restProxy http.Handler) {
 	u.Path = ""
-	proxy, err := NewReverseProxy(u, opts.UpstreamFlush, opts.UpstreamCAs)
+	proxy, err := NewReverseProxy(u, opts)
 	if err != nil {
 		log.Fatal("Failed to initialize Reverse Proxy: ", err)
 	}
