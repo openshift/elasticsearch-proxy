@@ -54,17 +54,17 @@ type Options struct {
 	AuthDefaultRole string `flag:"auth-default-role"`
 
 	//net/http.Server timeouts for the server side of the proxy
-	HTTPReadTimeout  time.Duration `flag:http-read-timeout`
-	HTTPWriteTimeout time.Duration `flag:http-write-timeout`
-	HTTPIdleTimeout  time.Duration `flag:http-idle-timeout`
+	HTTPReadTimeout  time.Duration `flag:"http-read-timeout"`
+	HTTPWriteTimeout time.Duration `flag:"http-write-timeout"`
+	HTTPIdleTimeout  time.Duration `flag:"http-idle-timeout"`
 
 	//net/http.Transport limits and timeouts
-	HTTPMaxConnsPerHost       int           `flag:http-max-conns-per-host`
-	HTTPMaxIdleConns          int           `flag:http-max-idle-conns`
-	HTTPMaxIdleConnsPerHost   int           `flag:http-max-idle-conns-per-host`
-	HTTPIdleConnTimeout       time.Duration `flag:http-idle-conn-timeout`
-	HTTPTLSHandshakeTimeout   time.Duration `flag:http-tls-handshake-timeout`
-	HTTPExpectContinueTimeout time.Duration `flag:http-expect-continue-timeout`
+	HTTPMaxConnsPerHost       int           `flag:"http-max-conns-per-host"`
+	HTTPMaxIdleConns          int           `flag:"http-max-idle-conns"`
+	HTTPMaxIdleConnsPerHost   int           `flag:"http-max-idle-conns-per-host"`
+	HTTPIdleConnTimeout       time.Duration `flag:"http-idle-conn-timeout"`
+	HTTPTLSHandshakeTimeout   time.Duration `flag:"http-tls-handshake-timeout"`
+	HTTPExpectContinueTimeout time.Duration `flag:"http-expect-continue-timeout"`
 }
 
 //Init the configuration options based on the values passed via the CLI
