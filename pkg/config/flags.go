@@ -46,7 +46,7 @@ func newFlagSet() *flag.FlagSet {
 	flagSet.Int("http-max-conns-per-host", 25, "The total number of connections per host. Zero means no limit.")
 	flagSet.Int("http-max-idle-conns", 25, "The maximum number of idle (keep-alive) connections across all hosts. Zero means no limit.")
 	flagSet.Int("http-max-idle-conns-per-host", 25, "The maximum number of idle (keep-alive) connections per host. Zero means no limit.")
-	flagSet.Duration("http-idle-conn-timeout", time.Duration(60)*time.Second, "The maximum amount of time to wait for the next request. Zero means no timeout.")
+	flagSet.Duration("http-idle-conn-timeout", time.Duration(1)*time.Minute, "The maximum amount of time to wait for the next request. Zero means no timeout.")
 	flagSet.Duration("http-tls-handshake-timeout", time.Duration(10)*time.Second, "The maximum amount of time to wait for a TLS handshake. Zero means no timeout.")
 	flagSet.Duration("http-expect-continue-timeout", time.Duration(1)*time.Second, "The amount of time to wait for a server's first response headers if the request has an \"Expect: 100-continue\" header. Zero means no timeout.")
 

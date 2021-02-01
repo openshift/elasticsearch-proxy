@@ -104,7 +104,7 @@ func newOptions() *Options {
 		HTTPMaxConnsPerHost:       25,
 		HTTPMaxIdleConns:          25,
 		HTTPMaxIdleConnsPerHost:   25,
-		HTTPIdleConnTimeout:       time.Duration(60) * time.Second,
+		HTTPIdleConnTimeout:       time.Duration(1) * time.Minute,
 		HTTPTLSHandshakeTimeout:   time.Duration(10) * time.Second,
 		HTTPExpectContinueTimeout: time.Duration(1) * time.Second,
 	}
@@ -163,31 +163,31 @@ func (o *Options) Validate() error {
 	}
 
 	if o.HTTPReadTimeout < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-read-timeout can not be negative"))
+		msgs = append(msgs, "http-read-timeout can not be negative")
 	}
 	if o.HTTPWriteTimeout < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-write-timeout can not be negative"))
+		msgs = append(msgs, "http-write-timeout can not be negative")
 	}
 	if o.HTTPIdleTimeout < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-idle-timeout can not be negative"))
+		msgs = append(msgs, "http-idle-timeout can not be negative")
 	}
 	if o.HTTPMaxConnsPerHost < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-max-conns-per-host can not be negative"))
+		msgs = append(msgs, "http-max-conns-per-host can not be negative")
 	}
 	if o.HTTPMaxIdleConns < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-max-idle-conns can not be negative"))
+		msgs = append(msgs, "http-max-idle-conns can not be negative")
 	}
 	if o.HTTPMaxIdleConnsPerHost < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-max-idle-conns-per-host can not be negative"))
+		msgs = append(msgs, "http-max-idle-conns-per-host can not be negative")
 	}
 	if o.HTTPIdleConnTimeout < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-idle-conn-timeout can not be negative"))
+		msgs = append(msgs, "http-idle-conn-timeout can not be negative")
 	}
 	if o.HTTPTLSHandshakeTimeout < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-tls-handshake-timeout can not be negative"))
+		msgs = append(msgs, "http-tls-handshake-timeout can not be negative")
 	}
 	if o.HTTPExpectContinueTimeout < 0 {
-		msgs = append(msgs, fmt.Sprintf("http-expect-continue-timeout can not be negative"))
+		msgs = append(msgs, "http-expect-continue-timeout can not be negative")
 	}
 
 	if len(msgs) != 0 {
