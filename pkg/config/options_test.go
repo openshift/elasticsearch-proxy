@@ -3,6 +3,7 @@ package config_test
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -132,6 +133,206 @@ var _ = Describe("Initializing Config options", func() {
 					"bar": config.BackendRoleConfig{Verb: "get"},
 				}
 				Expect(options.AuthBackEndRoles).Should(Equal(exp))
+			})
+		})
+	})
+
+	// HTTPReadTimeout
+	Describe("when defining HTTP server read timeout", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-read-timeout=7ns"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPReadTimeout).Should(Equal(7 * time.Nanosecond))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-read-timeout=-7ns"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-read-timeout can not be negative")))
+			})
+		})
+	})
+
+	// HTTPWriteTimeout
+	Describe("when defining HTTP server write timeout", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-write-timeout=1ms"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPWriteTimeout).Should(Equal(time.Millisecond))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-write-timeout=-1ms"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-write-timeout can not be negative")))
+			})
+		})
+	})
+
+	// HTTPIdleTimeout
+	Describe("when defining HTTP server idle timeout", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-idle-timeout=7s"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPIdleTimeout).Should(Equal(7 * time.Second))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-idle-timeout=-7s"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-idle-timeout can not be negative")))
+			})
+		})
+	})
+
+	// HTTPMaxConnsPerHost
+	Describe("when defining HTTP transport max connections per host", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-max-conns-per-host=1"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPMaxConnsPerHost).Should(Equal(1))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-max-conns-per-host=-1"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-max-conns-per-host can not be negative")))
+			})
+		})
+	})
+
+	// HTTPMaxIdleConns
+	Describe("when defining HTTP transport max idle connections", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-max-idle-conns=1"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPMaxIdleConns).Should(Equal(1))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-max-idle-conns=-1"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-max-idle-conns can not be negative")))
+			})
+		})
+	})
+
+	// HTTPMaxIdleConnsPerHost
+	Describe("when defining HTTP transport max idle connections per host", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-max-idle-conns-per-host=1"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPMaxIdleConnsPerHost).Should(Equal(1))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-max-idle-conns-per-host=-1"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-max-idle-conns-per-host can not be negative")))
+			})
+		})
+	})
+
+	// HTTPIdleConnTimeout
+	Describe("when defining negative HTTP transport idle connection timeout", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-idle-conn-timeout=2m"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPIdleConnTimeout).Should(Equal(2 * time.Minute))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-idle-conn-timeout=-2m"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-idle-conn-timeout can not be negative")))
+			})
+		})
+	})
+
+	// HTTPTLSHandshakeTimeout
+	Describe("when defining HTTP transport TLS handshake timeout", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-tls-handshake-timeout=3h"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPTLSHandshakeTimeout).Should(Equal(3 * time.Hour))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-tls-handshake-timeout=-3h"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-tls-handshake-timeout can not be negative")))
+			})
+		})
+	})
+
+	// HTTPExpectContinueTimeout
+	Describe("when defining HTTP transport expect continue timeout", func() {
+		Describe("to be non-negative", func() {
+			It("should succeed", func() {
+				args := []string{"--http-expect-continue-timeout=1h2m3s4ms5us6ns"}
+				options, err := config.Init(args)
+				Expect(err).Should(BeNil())
+				Expect(options).Should(Not(BeNil()))
+				Expect(options.HTTPExpectContinueTimeout).Should(Equal(
+					1*time.Hour + 2*time.Minute + 3*time.Second + 4*time.Millisecond +
+						5*time.Microsecond + 6*time.Nanosecond))
+			})
+		})
+		Describe("to be negative", func() {
+			It("should fail", func() {
+				args := []string{"--http-expect-continue-timeout=-1h2m3s4ms5us6ns"}
+				options, err := config.Init(args)
+				Expect(options).Should(BeNil())
+				Expect(err.Error()).Should(
+					Equal(errorMessage("http-expect-continue-timeout can not be negative")))
 			})
 		})
 	})
