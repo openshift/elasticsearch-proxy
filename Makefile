@@ -106,3 +106,7 @@ run: copy-es-certs
 		--cl-infra-role-name=sg_role_admin \
 		--ssl-insecure-skip-verify
 .PHONY: run
+
+lint:
+	@hack/run-linter
+.PHONY: lint
