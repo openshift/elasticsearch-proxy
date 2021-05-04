@@ -110,3 +110,6 @@ run: copy-es-certs
 lint:
 	@hack/run-linter
 .PHONY: lint
+gen-dockerfiles:
+	./hack/generate-dockerfile-from-midstream > Dockerfile
+.PHONY: gen-dockerfiles
