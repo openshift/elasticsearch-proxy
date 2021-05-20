@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/bluele/gcache v0.0.0-20190518031135-bc40bd653833
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/mreiferson/go-options v0.0.0-20190302064952-20ba7d382d05
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.7.0
