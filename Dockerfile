@@ -1,5 +1,5 @@
 ### This is a generated file from Dockerfile.in ###
-#@follow_tag(openshift-golang-builder:1.14)
+#@follow_tag(openshift-golang-builder:1.16)
 FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.16-openshift-4.8 AS builder
 
 ENV BUILD_VERSION=1.0
@@ -24,12 +24,14 @@ ENTRYPOINT ["/usr/bin/elasticsearch-proxy"]
 LABEL \
         io.k8s.display-name="OpenShift ElasticSearch Proxy" \
         io.k8s.description="OpenShift ElasticSearch Proxy component of OpenShift Cluster Logging" \
-        name="openshift/ose-elasticsearch-proxy" \
-        com.redhat.component="ose-elasticsearch-proxy-container" \
+        io.openshift.tags="openshift,logging,elasticsearch" \
+        maintainer="AOS Logging <aos-logging@redhat.com>" \
+        name="openshift-logging/elasticsearch-proxy-rhel8" \
+        com.redhat.component="elasticsearch-proxy-container" \
         io.openshift.maintainer.product="OpenShift Container Platform" \
         io.openshift.maintainer.component="Logging" \
         io.openshift.build.commit.id=${CI_ELASTICSEARCH_PROXY_UPSTREAM_COMMIT} \
         io.openshift.build.source-location=${CI_ELASTICSEARCH_PROXY_UPSTREAM_URL} \
         io.openshift.build.commit.url=${CI_ELASTICSEARCH_PROXY_UPSTREAM_URL}/commit/${CI_ELASTICSEARCH_PROXY_UPSTREAM_COMMIT} \
-        version=v1.0
+        version=v1.0.0
 
