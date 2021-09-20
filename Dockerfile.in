@@ -27,6 +27,7 @@ LABEL \
         io.k8s.display-name="OpenShift ElasticSearch Proxy" \
         io.k8s.description="OpenShift ElasticSearch Proxy component of OpenShift Cluster Logging" \
         io.openshift.tags="openshift,logging,elasticsearch" \
+        License="Apache-2.0" \
         maintainer="AOS Logging <aos-logging@redhat.com>" \
         name="openshift-logging/elasticsearch-proxy-rhel8" \
         com.redhat.component="elasticsearch-proxy-container" \
