@@ -1,5 +1,5 @@
-#@follow_tag(openshift-golang-builder:1.16)
-FROM openshift-golang-builder:v1.16.6-202107291435.el8.git.83c4106 AS builder
+#@follow_tag(registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_8_golang_1.16)
+FROM registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:v1.16.6-202107291435.el8.git.83c4106 AS builder
 
 ENV BUILD_VERSION=1.0
 ENV OS_GIT_MAJOR=1
@@ -18,8 +18,8 @@ COPY ${REMOTE_SOURCE} .
 
 RUN make
 
-#@follow_tag(openshift-ose-base:ubi8)
-FROM openshift-ose-base:v4.8.0-202105191933.p0
+#@follow_tag(registry.redhat.io/ubi8:latest)
+FROM registry.redhat.io/ubi8:8.4-209
 COPY --from=builder /go/src/github.com/openshift/elasticsearch-proxy/bin/elasticsearch-proxy /usr/bin/
 ENTRYPOINT ["/usr/bin/elasticsearch-proxy"]
 
