@@ -95,7 +95,7 @@ endif
 run: copy-es-certs
 	KUBERNETES_SERVICE_HOST="${KUBERNETES_SERVICE_HOST}" \
 	KUBERNETES_SERVICE_PORT="${KUBERNETES_SERVICE_PORT}" \
-	LOGLEVEL=trace go run ${MAIN_PKG} --listening-address=':60000' \
+	LOG_LEVEL=trace go run ${MAIN_PKG} --listening-address=':60000' \
         --tls-cert=$(TLS_CERTS_BASEDIR)/admin-cert \
         --tls-key=$(TLS_CERTS_BASEDIR)/admin-key \
         --upstream-ca=$(TLS_CERTS_BASEDIR)/admin-ca \
