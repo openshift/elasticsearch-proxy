@@ -93,14 +93,16 @@ func (auth *authorizationHandler) Process(req *http.Request) (*http.Request, err
 		ctx = context.WithValue(ctx, handlers.ProjectsKey, projects)
 
 		var roles []string
-		if auth.config.AuthDefaultRole != "" {
-			roles = append(roles, auth.config.AuthDefaultRole)
-		}
 
 		for name := range auth.config.AuthBackEndRoles {
 			if _, ok := rolesProjects.roles[name]; ok {
 				roles = append(roles, name)
 			}
+		}
+
+		if len(roles) == 0 && auth.config.AuthDefaultRole != "" {
+			log.Debugf("User has no roles. Adding default role: %s", auth.config.AuthDefaultRole)
+			roles = append(roles, auth.config.AuthDefaultRole)
 		}
 
 		rs := sets.NewString(roles...)

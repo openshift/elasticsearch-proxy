@@ -80,7 +80,6 @@ var _ = Describe("Process", func() {
 		})
 	})
 
-	// Context("when a bearer token without certs is provided and it does not error", func() {
 	Context("when certs are not provided and it does not error", func() {
 		var otherCacheEntry *rolesProjects
 		BeforeEach(func() {
@@ -186,7 +185,7 @@ var _ = Describe("Process", func() {
 				Expect(req.Context().Value(handlers.RolesKey)).To(ConsistOf(wantRoles))
 			})
 
-			Context("and has the spec'd default role", func() {
+			Context("and has the spec'd default role with predefined roles", func() {
 
 				BeforeEach(func() {
 					req.Header.Set("Authorization", "Bearer somebearertoken")
@@ -196,14 +195,38 @@ var _ = Describe("Process", func() {
 					Expect(err).To(BeNil())
 				})
 
-				It("should update the request to only include the admin role", func() {
+				It("should not update the request to include the default role", func() {
 					entries, ok := req.Header["X-Forwarded-Roles"]
 					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
-					Expect(entries).To(Equal([]string{"project_reader,roleA,roleB"}), "Exp. to the default role to apply")
+					Expect(entries).To(Equal([]string{"roleA,roleB"}), "Exp. to not apply the default role")
+				})
+
+				It("should not store default role in request context", func() {
+					wantRoles := []string{"roleA", "roleB"}
+					Expect(req.Context().Value(handlers.RolesKey)).To(ConsistOf(wantRoles))
+				})
+			})
+
+			Context("and has the spec'd default role without predefined roles", func() {
+
+				BeforeEach(func() {
+					cacheEntry.roles = map[string]struct{}{}
+					req.Header.Set("Authorization", "Bearer somebearertoken")
+
+					handler.config.AuthAdminRole = ""
+					handler.config.AuthDefaultRole = "project_reader"
+					req, err = handler.Process(req)
+					Expect(err).To(BeNil())
+				})
+
+				It("should update the request to only include the default role", func() {
+					entries, ok := req.Header["X-Forwarded-Roles"]
+					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
+					Expect(entries).To(Equal([]string{"project_reader"}), "Exp. to the default role to apply")
 				})
 
 				It("should store default role in request context", func() {
-					wantRoles := []string{"project_reader", "roleA", "roleB"}
+					wantRoles := []string{"project_reader"}
 					Expect(req.Context().Value(handlers.RolesKey)).To(ConsistOf(wantRoles))
 				})
 			})
