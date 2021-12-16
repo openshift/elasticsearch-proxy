@@ -50,7 +50,7 @@ type Options struct {
 	//passed on the request if it is found in the list of roles
 	AuthAdminRole string `flag:"auth-admin-role"`
 
-	//AuthDefaultRole is the role every request is assigned
+	//AuthDefaultRole is the role added when no other roles are provided
 	AuthDefaultRole string `flag:"auth-default-role"`
 
 	//net/http.Server timeouts for the server side of the proxy
