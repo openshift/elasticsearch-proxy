@@ -21,7 +21,7 @@ var _ = Describe("Process", func() {
 	var (
 		err        error
 		req        *http.Request
-		context    = &handlers.RequestContext{}
+		context    *handlers.RequestContext
 		handler    *authorizationHandler
 		cacheEntry *rolesProjects
 	)
@@ -30,6 +30,7 @@ var _ = Describe("Process", func() {
 		req, _ = http.NewRequest("post", "https://someplace", nil)
 		req.Header.Set("X-OCP-NS", "deleteme")
 		req.Header.Set("X-Forwarded-Roles", "deleteme")
+		context = &handlers.RequestContext{}
 		handler = &authorizationHandler{
 			config: &config.Options{
 				AuthBackEndRoles: map[string]config.BackendRoleConfig{
@@ -78,7 +79,6 @@ var _ = Describe("Process", func() {
 		})
 	})
 
-	// Context("when a bearer token without certs is provided and it does not error", func() {
 	Context("when certs are not provided and it does not error", func() {
 		var otherCacheEntry *rolesProjects
 		BeforeEach(func() {
@@ -138,7 +138,6 @@ var _ = Describe("Process", func() {
 			It("should pass the subject as the user", func() {
 				req, err = handler.Process(req, context)
 				Expect(err).To(BeNil())
-
 				req.Header.Set("Authorization", "Bearer  abc123")
 				req.Header.Set("X-Forwarded-Access-Token", "1234")
 				req, err = handler.Process(req, context)
@@ -170,9 +169,7 @@ var _ = Describe("Process", func() {
 				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a project uids to be added to be proxy headers: %v", req.Header))
 				Expect(entries).To(Equal([]string{"projectauuid,projectbuuid"}))
 			})
-
-			Context("and has the spec'd default role", func() {
-
+			Context("and has the spec'd default role with predefined roles", func() {
 				BeforeEach(func() {
 					req.Header.Set("Authorization", "Bearer somebearertoken")
 					handler.config.AuthAdminRole = ""
@@ -180,16 +177,29 @@ var _ = Describe("Process", func() {
 					req, err = handler.Process(req, context)
 					Expect(err).To(BeNil())
 				})
-
-				It("should update the request to only include the admin role", func() {
+				It("should not update the request to include the default role", func() {
 					entries, ok := req.Header["X-Forwarded-Roles"]
 					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
-					Expect(entries).To(Equal([]string{"project_reader,roleA,roleB"}), "Exp. to the default role to apply")
+					Expect(entries).To(Equal([]string{"roleA,roleB"}), "Exp. to not apply the default role")
 				})
 			})
-
+			Context("and has the spec'd default role without predefined roles", func() {
+				BeforeEach(func() {
+					context.Roles = []string{}
+					cacheEntry.roles = map[string]struct{}{}
+					req.Header.Set("Authorization", "Bearer somebearertoken")
+					handler.config.AuthAdminRole = ""
+					handler.config.AuthDefaultRole = "project_reader"
+					req, err = handler.Process(req, context)
+					Expect(err).To(BeNil())
+				})
+				It("should update the request to only include the default role", func() {
+					entries, ok := req.Header["X-Forwarded-Roles"]
+					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))
+					Expect(entries).To(Equal([]string{"project_reader"}), "Exp. to the default role to apply")
+				})
+			})
 			Context("and has the spec'd admin role", func() {
-
 				BeforeEach(func() {
 					req.Header.Set("Authorization", "Bearer somebearertoken")
 					handler.config.AuthAdminRole = "admin_reader"
@@ -197,7 +207,6 @@ var _ = Describe("Process", func() {
 					req, err = handler.Process(req, context)
 					Expect(err).To(BeNil())
 				})
-
 				It("should update the request to only include the admin role", func() {
 					entries, ok := req.Header["X-Forwarded-Roles"]
 					Expect(ok).To(BeTrue(), fmt.Sprintf("Expected 'X-Forwarded-Roles' in the headers: %v", req.Header))

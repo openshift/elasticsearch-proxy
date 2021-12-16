@@ -78,13 +78,14 @@ func (auth *authorizationHandler) Process(req *http.Request, context *handlers.R
 		}
 		req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
 		req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
-		if auth.config.AuthDefaultRole != "" {
-			context.Roles = append(context.Roles, auth.config.AuthDefaultRole)
-		}
 		for name := range auth.config.AuthBackEndRoles {
 			if _, ok := rolesProjects.roles[name]; ok {
 				context.Roles = append(context.Roles, name)
 			}
+		}
+		if len(context.Roles) == 0 && auth.config.AuthDefaultRole != "" {
+			log.Debugf("User has no roles. Adding default role: %s", auth.config.AuthDefaultRole)
+			context.Roles = append(context.Roles, auth.config.AuthDefaultRole)
 		}
 		if context.RoleSet().Has(auth.config.AuthAdminRole) {
 			log.Debugf("User has the configurated admin role %v. Removing all other roles.", auth.config.AuthAdminRole)

@@ -51,7 +51,7 @@ type Options struct {
 	//passed on the request if it is found in the list of roles
 	AuthAdminRole string `flag:"auth-admin-role"`
 
-	//AuthDefaultRole is the role every request is assigned
+	//AuthDefaultRole is the role assigned when no other roles are given
 	AuthDefaultRole string `flag:"auth-default-role"`
 
 	//OCP Cluster Logging configs
