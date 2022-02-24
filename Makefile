@@ -1,5 +1,5 @@
 export GOROOT=$(shell go env GOROOT)
-export GOFLAGS=-mod=vendor
+export GOFLAGS=
 export GO111MODULE=on
 
 ARTIFACT_DIR?=./tmp
@@ -19,7 +19,7 @@ NAMESPACE ?= "openshift-logging"
 ES_CERTS_DIR ?= ""
 CACHE_EXPIRY ?= "5s"
 
-PKGS=$(shell go list ./... | grep -v -E '/vendor/')
+PKGS=$(shell go list ./...)
 TEST_OPTIONS?=
 
 ELASTICSEARCH_NAME ?=elasticsearch
@@ -42,9 +42,6 @@ build: fmt
 	go build $(LDFLAGS) -o $(TARGET) $(MAIN_PKG)
 .PHONY: build
 
-vendor:
-	go mod vendor
-.PHONY: vendor
 
 image:
 	podman build -f Dockerfile -t $(LOCAL_IMAGE_TAG) .
@@ -53,7 +50,6 @@ image:
 deploy-image: image
 	IMAGE_TAG=$(LOCAL_IMAGE_TAG) hack/deploy-image.sh
 .PHONY: deploy-image
-
 
 clean:
 	rm -rf $(TARGET_DIR)
