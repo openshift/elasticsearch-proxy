@@ -95,7 +95,7 @@ func listProjects(client clients.OpenShiftClient, token string) ([]apis.Project,
 	}
 	projects := make([]apis.Project, len(namespaces))
 	for i, ns := range namespaces {
-		projects[i] = apis.Project{Name: ns.Name(), UUID: ns.UID()}
+		projects[i] = apis.Project{Name: ns.Name()}
 	}
 	return projects, nil
 }

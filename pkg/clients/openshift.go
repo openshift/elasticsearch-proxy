@@ -55,11 +55,6 @@ type Namespace struct {
 	Ns osprojectv1.Project
 }
 
-//UID get the UID of a namespace
-func (ns *Namespace) UID() string {
-	return string(ns.Ns.UID)
-}
-
 //Name get the name of a namespace
 func (ns *Namespace) Name() string {
 	return ns.Ns.Name
