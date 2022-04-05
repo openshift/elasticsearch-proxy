@@ -21,7 +21,6 @@ const (
 	headerForwardedUser         = "X-Forwarded-User"
 	headerForwardedRoles        = "X-Forwarded-Roles"
 	headerForwardedNamespace    = "X-OCP-NS"
-	headerForwardedNamespaceUid = "X-OCP-NSUID"
 	headerXForwardedAccessToken = "X-Forwarded-Access-Token"
 )
 
@@ -82,14 +81,11 @@ func (auth *authorizationHandler) Process(req *http.Request) (*http.Request, err
 		projects := rolesProjects.projects
 
 		projectNames := []string{}
-		projectUIDs := []string{}
 		for _, project := range projects {
 			projectNames = append(projectNames, fmt.Sprintf("%q", project.Name))
-			projectUIDs = append(projectUIDs, project.UUID)
 		}
 
 		req.Header.Add(headerForwardedNamespace, strings.Join(projectNames, ","))
-		req.Header.Add(headerForwardedNamespaceUid, strings.Join(projectUIDs, ","))
 		ctx = context.WithValue(ctx, handlers.ProjectsKey, projects)
 
 		var roles []string
@@ -139,7 +135,6 @@ func sanitizeHeaders(req *http.Request) {
 	req.Header.Del(headerForwardedRoles)
 	req.Header.Del(headerForwardedUser)
 	req.Header.Del(headerForwardedNamespace)
-	req.Header.Del(headerForwardedNamespaceUid)
 	req.Header.Del(headerXForwardedAccessToken)
 }
 

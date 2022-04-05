@@ -55,7 +55,6 @@ var _ = Describe("Process", func() {
 				Expect(req.Header.Get("Authorization")).To(BeEmpty())
 				Expect(req.Header.Get("X-Forwarded-Roles")).To(BeEmpty())
 				Expect(req.Header.Get("X-OCP-NS")).To(BeEmpty())
-				Expect(req.Header.Get("X-OCP-NSUID")).To(BeEmpty())
 			})
 			It("should store subject into the request context", func() {
 				Expect(req.Context().Value(handlers.SubjectKey)).To(Equal("CN=foo,OU=org-unit,O=org"))
@@ -102,11 +101,9 @@ var _ = Describe("Process", func() {
 				projects: []apis.Project{
 					apis.Project{
 						Name: "projecta",
-						UUID: "projectauuid",
 					},
 					apis.Project{
 						Name: "projectb",
-						UUID: "projectbuuid",
 					},
 				},
 			}
@@ -169,15 +166,10 @@ var _ = Describe("Process", func() {
 				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a user's projects to be added to be proxy headers: %v", req.Header))
 				Expect(entries).To(Equal([]string{"\"projecta\",\"projectb\""}))
 			})
-			It("should add a user's project uids to the request", func() {
-				entries, ok := req.Header["X-Ocp-Nsuid"]
-				Expect(ok).To(BeTrue(), fmt.Sprintf("Expected a project uids to be added to be proxy headers: %v", req.Header))
-				Expect(entries).To(Equal([]string{"projectauuid,projectbuuid"}))
-			})
 			It("should store username, roles and project in request context", func() {
 				wantProjects := []apis.Project{
-					{Name: "projecta", UUID: "projectauuid"},
-					{Name: "projectb", UUID: "projectbuuid"},
+					{Name: "projecta"},
+					{Name: "projectb"},
 				}
 				wantRoles := []string{"roleA", "roleB"}
 				Expect(req.Context().Value(handlers.UsernameKey)).To(Equal("myname"))
