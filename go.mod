@@ -9,8 +9,8 @@ require (
 	github.com/mreiferson/go-options v0.0.0-20190302064952-20ba7d382d05
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
-	github.com/openshift/api v0.0.0-20220124143425-d74727069f6f
-	github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3
+	github.com/openshift/api v0.0.0-20220712151050-2647eb31dee7 // Corresponds to release-4.11
+	github.com/openshift/client-go v0.0.0-20220603133046-984ee5ebedcf
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/yhat/wsutil v0.0.0-20170731153501-1d66fa95c997
@@ -55,7 +55,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
