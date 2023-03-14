@@ -8,8 +8,8 @@ require (
 	github.com/mreiferson/go-options v0.0.0-20190302064952-20ba7d382d05
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.23.0
-	github.com/openshift/api v0.0.0-20220712151050-2647eb31dee7 // Corresponds to release-4.11
-	github.com/openshift/client-go v0.0.0-20220603133046-984ee5ebedcf
+	github.com/openshift/api v0.0.0-20230228142948-d170fcdc0fa6 // Corresponds to release-4.13
+	github.com/openshift/client-go v0.0.0-20230120202327-72f107311084
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/yhat/wsutil v0.0.0-20170731153501-1d66fa95c997
@@ -33,7 +33,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/gofuzz v1.1.0 // indirect
+	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
