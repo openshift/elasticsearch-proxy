@@ -33,7 +33,6 @@ func (s *Server) ListenAndServe() {
 
 	cfg := &tls.Config{
 		MinVersion: tls.VersionTLS12,
-		MaxVersion: tls.VersionTLS12,
 		NextProtos: []string{"http/1.1"},
 	}
 
