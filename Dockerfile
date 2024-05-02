@@ -1,6 +1,7 @@
 ### This is a generated file from Dockerfile.in ###
-#@follow_tag(registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_8_golang_1.19)
-FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.19-openshift-4.12 AS builder
+### This is a generated file from Dockerfile.in ###
+#@follow_tag(registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_9_golang_1.21)
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.21-openshift-4.16 AS builder
 
 ENV BUILD_VERSION=1.0
 ENV OS_GIT_MAJOR=1
@@ -16,8 +17,8 @@ COPY ${REMOTE_SOURCE} .
 
 RUN make
 
-#@follow_tag(registry.redhat.io/ubi8:latest)
-FROM registry.ci.openshift.org/ocp/4.12:base
+#@follow_tag(registry.redhat.io/ubi9:latest)
+FROM registry.ci.openshift.org/ocp/4.16:base-rhel9
 COPY --from=builder /go/src/github.com/openshift/elasticsearch-proxy/bin/elasticsearch-proxy /usr/bin/
 ENTRYPOINT ["/usr/bin/elasticsearch-proxy"]
 
@@ -27,7 +28,7 @@ LABEL \
         io.openshift.tags="openshift,logging,elasticsearch" \
         License="Apache-2.0" \
         maintainer="AOS Logging <aos-logging@redhat.com>" \
-        name="openshift-logging/elasticsearch-proxy-rhel8" \
+        name="openshift-logging/elasticsearch-proxy-rhel9" \
         com.redhat.component="elasticsearch-proxy-container" \
         io.openshift.maintainer.product="OpenShift Container Platform" \
         io.openshift.maintainer.component="Logging" \
