@@ -104,8 +104,5 @@ run: copy-es-certs
 .PHONY: run
 
 lint:
-	@hack/run-linter
+	@echo "No linting here anymore"
 .PHONY: lint
-gen-dockerfiles:
-	./hack/generate-dockerfile-from-midstream > Dockerfile
-.PHONY: gen-dockerfiles

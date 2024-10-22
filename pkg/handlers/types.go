@@ -30,8 +30,8 @@ type StructuredError struct {
 	Error   error  `json:"error,omitempty"`
 }
 
-//NewError returns an error with a code and message that can be returned
-//as a structured error understandable by Kibana
+// NewError returns an error with a code and message that can be returned
+// as a structured error understandable by Kibana
 func NewError(code, message string) error {
 	return fmt.Errorf("got %s %s", code, message)
 }
@@ -60,8 +60,8 @@ func NewStructuredError(err error) StructuredError {
 	}
 }
 
-//RequestHandler if a function that modifies a request.  Execution occurs
-//after authentication but before proxy to upstream
+// RequestHandler if a function that modifies a request.  Execution occurs
+// after authentication but before proxy to upstream
 type RequestHandler interface {
 	//Process the request and return the modification or error
 	Process(req *http.Request) (*http.Request, error)
