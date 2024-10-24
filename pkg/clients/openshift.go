@@ -20,7 +20,7 @@ import (
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 )
 
-//OpenShiftClient abstracts kubeclient and calls
+// OpenShiftClient abstracts kubeclient and calls
 type OpenShiftClient interface {
 	ListNamespaces(token string) ([]Namespace, error)
 
@@ -30,37 +30,37 @@ type OpenShiftClient interface {
 	SubjectAccessReview(groups []string, user, namespace, verb, resource, resourceAPIGroup string) (bool, error)
 }
 
-//DefaultOpenShiftClient is the default impl of OpenShiftClient
+// DefaultOpenShiftClient is the default impl of OpenShiftClient
 type DefaultOpenShiftClient struct {
 	client *kubernetes.Clientset
 }
 
-//TokenReview is simple struct wrapper around a kubernetes TokenReview
+// TokenReview is simple struct wrapper around a kubernetes TokenReview
 type TokenReview struct {
 	*authenticationapi.TokenReview
 }
 
-//UserName returns the username associated with a given token
+// UserName returns the username associated with a given token
 func (t *TokenReview) UserName() string {
 	return t.Status.User.Username
 }
 
-//Groups returns the groups associated with a given token
+// Groups returns the groups associated with a given token
 func (t *TokenReview) Groups() []string {
 	return t.Status.User.Groups
 }
 
-//Namespace wrappers a core kube namespace type
+// Namespace wrappers a core kube namespace type
 type Namespace struct {
 	Ns osprojectv1.Project
 }
 
-//Name get the name of a namespace
+// Name get the name of a namespace
 func (ns *Namespace) Name() string {
 	return ns.Ns.Name
 }
 
-//ListNamespaces associated with a given token
+// ListNamespaces associated with a given token
 func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Namespace, err error) {
 	if len(token) == 0 {
 		return nil, fmt.Errorf("attempted to list namespaces with 0-length token")
@@ -91,8 +91,8 @@ func (c *DefaultOpenShiftClient) ListNamespaces(token string) (namespaces []Name
 	return namespaces, nil
 }
 
-//TokenReview performs a tokenreview for a given token submitting to the apiserver
-//using the serviceaccount token. It returns a simplejson object of the response
+// TokenReview performs a tokenreview for a given token submitting to the apiserver
+// using the serviceaccount token. It returns a simplejson object of the response
 func (c *DefaultOpenShiftClient) TokenReview(token string) (*TokenReview, error) {
 	log.Debug("Performing TokenReview...")
 	review := &authenticationapi.TokenReview{
@@ -107,7 +107,7 @@ func (c *DefaultOpenShiftClient) TokenReview(token string) (*TokenReview, error)
 	return &TokenReview{result}, nil
 }
 
-//SubjectAccessReview performs a SAR and returns true if the user is allowed
+// SubjectAccessReview performs a SAR and returns true if the user is allowed
 func (c *DefaultOpenShiftClient) SubjectAccessReview(groups []string, user, namespace, verb, resource, resourceAPIGroup string) (bool, error) {
 	log.Debug("Performing SubjectAccessReview...")
 	sar := &authorizationapi.SubjectAccessReview{

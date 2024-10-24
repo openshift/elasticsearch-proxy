@@ -1,7 +1,7 @@
 ### This is a generated file from Dockerfile.in ###
 ### This is a generated file from Dockerfile.in ###
-#@follow_tag(registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_9_golang_1.21)
-FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.21-openshift-4.16 AS builder
+#@follow_tag(registry-proxy.engineering.redhat.com/rh-osbs/openshift-golang-builder:rhel_9_golang_1.22)
+FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.22-openshift-4.17 AS builder
 
 ENV BUILD_VERSION=1.0
 ENV OS_GIT_MAJOR=1
@@ -18,7 +18,8 @@ COPY ${REMOTE_SOURCE} .
 RUN make
 
 #@follow_tag(registry.redhat.io/ubi9:latest)
-FROM registry.ci.openshift.org/ocp/4.16:base-rhel9
+FROM registry.ci.openshift.org/ocp/4.17:base-rhel9
+
 COPY --from=builder /go/src/github.com/openshift/elasticsearch-proxy/bin/elasticsearch-proxy /usr/bin/
 ENTRYPOINT ["/usr/bin/elasticsearch-proxy"]
 

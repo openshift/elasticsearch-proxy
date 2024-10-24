@@ -31,7 +31,7 @@ type authorizationHandler struct {
 	fnSubjectExtractor certSubjectExtractor
 }
 
-//NewHandlers is the initializer for this handler
+// NewHandlers is the initializer for this handler
 func NewHandlers(opts *config.Options) []handlers.RequestHandler {
 	osClient, err := clients.NewOpenShiftClient()
 	if err != nil {
@@ -50,8 +50,8 @@ func (auth *authorizationHandler) Name() string {
 	return "authorization"
 }
 
-//Process the request for authorization. The handler first attempts to get userinfo using bearer token
-//and falls back to the certificate subject or fails
+// Process the request for authorization. The handler first attempts to get userinfo using bearer token
+// and falls back to the certificate subject or fails
 func (auth *authorizationHandler) Process(req *http.Request) (*http.Request, error) {
 	log.Tracef("Processing request in handler %q", auth.Name())
 	log.Tracef("ContentLength: %v ", req.ContentLength)

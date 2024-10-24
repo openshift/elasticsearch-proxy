@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//Options that can be set by Command Line Flag, or Config File
+// Options that can be set by Command Line Flag, or Config File
 type Options struct {
 	ProxyWebSockets  bool     `flag:"proxy-websockets"`
 	ListeningAddress string   `flag:"listening-address"`
@@ -67,7 +67,7 @@ type Options struct {
 	HTTPExpectContinueTimeout time.Duration `flag:"http-expect-continue-timeout"`
 }
 
-//Init the configuration options based on the values passed via the CLI
+// Init the configuration options based on the values passed via the CLI
 func Init(args []string) (*Options, error) {
 	opts := newOptions()
 	flagSet := newFlagSet()
@@ -110,7 +110,7 @@ func newOptions() *Options {
 	}
 }
 
-//Validate the configuration options and return errors
+// Validate the configuration options and return errors
 func (o *Options) Validate() error {
 	log.Tracef("Validating options: %v", o)
 	msgs := make([]string, 0)

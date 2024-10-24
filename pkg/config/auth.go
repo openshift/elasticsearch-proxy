@@ -9,7 +9,7 @@ type AuthConfig struct {
 	AuthBackEndRoles   map[string]BackendRoleConfig
 }
 
-//BackendRoleConfig is for executing a SAR against the API server
+// BackendRoleConfig is for executing a SAR against the API server
 type BackendRoleConfig struct {
 	Namespace        string `json:"namespace,omitempty"`
 	Verb             string `json:"verb,omitempty"`

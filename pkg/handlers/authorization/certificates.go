@@ -4,8 +4,8 @@ import (
 	"net/http"
 )
 
-//certSubjectExtractor takes a request and extracts the subject from the certificates
-//in RFC 2253 Distinguished Names syntax.
+// certSubjectExtractor takes a request and extracts the subject from the certificates
+// in RFC 2253 Distinguished Names syntax.
 type certSubjectExtractor func(req *http.Request) string
 
 func defaultCertSubjectExtractor(req *http.Request) string {

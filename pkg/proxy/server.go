@@ -27,7 +27,7 @@ type ProxyServer struct {
 	requestHandlers []handlers.RequestHandler
 }
 
-//RegisterRequestHandlers adds request handlers to the
+// RegisterRequestHandlers adds request handlers to the
 func (p *ProxyServer) RegisterRequestHandlers(reqHandlers []handlers.RequestHandler) {
 	p.requestHandlers = append(p.requestHandlers, reqHandlers...)
 }
